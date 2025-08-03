@@ -1,0 +1,325 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Dashboard - Kido">
+  <div class="min-h-screen bg-base-200 py-8">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">Growth Dashboard</h1>
+        <div class="space-x-2">
+          <a href="/add-measurement" class="btn btn-primary">Add Measurement</a>
+          <a href="/" class="btn btn-outline">← Home</a>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Total Measurements</h2>
+            <div class="text-3xl font-bold text-primary" id="total-measurements">0</div>
+          </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Children Tracked</h2>
+            <div class="text-3xl font-bold text-secondary" id="total-children">0</div>
+          </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Latest Measurement</h2>
+            <div class="text-sm text-base-content/70" id="latest-measurement">No data</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Child Filter -->
+      <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <div class="flex flex-wrap gap-4 items-center">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Filter by child:</span>
+              </label>
+              <select id="child-filter" class="select select-bordered">
+                <option value="">All children</option>
+              </select>
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Sort by:</span>
+              </label>
+              <select id="sort-filter" class="select select-bordered">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="child">By child name</option>
+              </select>
+            </div>
+            <button id="clear-data" class="btn btn-error btn-outline mt-8">Clear All Data</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Measurements Table -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title mb-4">Measurement History</h2>
+          <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+              <thead>
+                <tr>
+                  <th>Child Name</th>
+                  <th>Date</th>
+                  <th>Age</th>
+                  <th>Weight</th>
+                  <th>Height</th>
+                  <th>Head Circumference</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="measurements-table">
+                <!-- Measurements will be populated here -->
+              </tbody>
+            </table>
+          </div>
+          <div id="no-data" class="text-center py-8 hidden">
+            <div class="text-base-content/50">
+              <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <h3 class="text-lg font-medium mb-2">No measurements yet</h3>
+              <p class="mb-4">Get started by adding your first measurement.</p>
+              <a href="/add-measurement" class="btn btn-primary">Add First Measurement</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Delete Measurement</h3>
+      <p class="py-4">Are you sure you want to delete this measurement? This action cannot be undone.</p>
+      <div class="modal-action">
+        <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-error" id="confirm-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // Types
+  interface Measurement {
+    id: string;
+    childName: string;
+    dateOfBirth: string;
+    measurementDate: string;
+    sex: string;
+    ageInDays: number;
+    weight: number;
+    height: number;
+    headCircumference: number;
+    notes: string;
+    originalUnits: {
+      weight: string;
+      height: string;
+      headCircumference: string;
+    };
+    createdAt: string;
+  }
+
+  // Load measurements from localStorage
+  let measurements: Measurement[] = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
+  let currentFilter = '';
+  let currentSort = 'newest';
+  let measurementToDelete = '';
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadDashboard();
+    setupEventListeners();
+  });
+
+  function setupEventListeners() {
+    const childFilter = document.getElementById('child-filter') as HTMLSelectElement;
+    const sortFilter = document.getElementById('sort-filter') as HTMLSelectElement;
+    const clearDataBtn = document.getElementById('clear-data') as HTMLButtonElement;
+    const confirmDeleteBtn = document.getElementById('confirm-delete') as HTMLButtonElement;
+
+    if (childFilter) {
+      childFilter.addEventListener('change', function() {
+        currentFilter = this.value;
+        renderMeasurements();
+      });
+    }
+
+    if (sortFilter) {
+      sortFilter.addEventListener('change', function() {
+        currentSort = this.value;
+        renderMeasurements();
+      });
+    }
+
+    if (clearDataBtn) {
+      clearDataBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+          localStorage.removeItem('kido-measurements');
+          measurements = [];
+          loadDashboard();
+        }
+      });
+    }
+
+    if (confirmDeleteBtn) {
+      confirmDeleteBtn.addEventListener('click', function() {
+        deleteMeasurement(measurementToDelete);
+        closeDeleteModal();
+      });
+    }
+  }
+
+  function loadDashboard() {
+    updateStats();
+    updateChildFilter();
+    renderMeasurements();
+  }
+
+  function updateStats() {
+    const totalMeasurements = measurements.length;
+    const uniqueChildren = [...new Set(measurements.map((m: Measurement) => m.childName))].length;
+    const latestMeasurement = measurements.length > 0 ? 
+      measurements.sort((a: Measurement, b: Measurement) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
+
+    document.getElementById('total-measurements')!.textContent = totalMeasurements.toString();
+    document.getElementById('total-children')!.textContent = uniqueChildren.toString();
+    
+    if (latestMeasurement) {
+      const date = new Date(latestMeasurement.measurementDate).toLocaleDateString();
+      document.getElementById('latest-measurement')!.textContent = 
+        `${latestMeasurement.childName} - ${date}`;
+    } else {
+      document.getElementById('latest-measurement')!.textContent = 'No data';
+    }
+  }
+
+  function updateChildFilter() {
+    const childFilter = document.getElementById('child-filter') as HTMLSelectElement;
+    const uniqueChildren = [...new Set(measurements.map((m: Measurement) => m.childName))];
+    
+    // Clear existing options (except "All children")
+    while (childFilter.children.length > 1) {
+      childFilter.removeChild(childFilter.lastChild!);
+    }
+    
+    // Add child options
+    uniqueChildren.forEach((childName: string) => {
+      const option = document.createElement('option');
+      option.value = childName;
+      option.textContent = childName;
+      childFilter.appendChild(option);
+    });
+  }
+
+  function renderMeasurements() {
+    let filteredMeasurements = measurements;
+    
+    // Apply child filter
+    if (currentFilter) {
+      filteredMeasurements = measurements.filter((m: Measurement) => m.childName === currentFilter);
+    }
+    
+    // Apply sorting
+    filteredMeasurements.sort((a: Measurement, b: Measurement) => {
+      switch (currentSort) {
+        case 'newest':
+          return new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime();
+        case 'oldest':
+          return new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime();
+        case 'child':
+          return a.childName.localeCompare(b.childName);
+        default:
+          return 0;
+      }
+    });
+
+    const tableBody = document.getElementById('measurements-table')!;
+    const noDataDiv = document.getElementById('no-data')!;
+    
+    if (filteredMeasurements.length === 0) {
+      tableBody.innerHTML = '';
+      noDataDiv.classList.remove('hidden');
+    } else {
+      noDataDiv.classList.add('hidden');
+      tableBody.innerHTML = filteredMeasurements.map((measurement: Measurement) => {
+        const measurementDate = new Date(measurement.measurementDate).toLocaleDateString();
+        const ageText = getAgeText(measurement.ageInDays);
+        
+        return `
+          <tr>
+            <td>
+              <div class="font-medium">${measurement.childName}</div>
+              <div class="text-sm text-base-content/70">${measurement.sex}</div>
+            </td>
+            <td>${measurementDate}</td>
+            <td>${ageText}</td>
+            <td>${measurement.weight.toFixed(1)} kg</td>
+            <td>${measurement.height.toFixed(1)} cm</td>
+            <td>${measurement.headCircumference.toFixed(1)} cm</td>
+            <td>
+              <div class="flex gap-2">
+                <button class="btn btn-xs btn-error btn-outline" onclick="showDeleteModal('${measurement.id}')">
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  function getAgeText(ageInDays: number): string {
+    if (ageInDays < 30) {
+      return `${ageInDays} days`;
+    } else if (ageInDays < 365) {
+      const months = Math.floor(ageInDays / 30);
+      const remainingDays = ageInDays % 30;
+      return remainingDays > 0 ? `${months}m ${remainingDays}d` : `${months} months`;
+    } else {
+      const years = Math.floor(ageInDays / 365);
+      const months = Math.floor((ageInDays % 365) / 30);
+      return months > 0 ? `${years}y ${months}m` : `${years} years`;
+    }
+  }
+
+  function showDeleteModal(measurementId: string) {
+    measurementToDelete = measurementId;
+    const modal = document.getElementById('delete-modal') as HTMLElement;
+    if (modal) {
+      modal.classList.add('modal-open');
+    }
+  }
+
+  function closeDeleteModal() {
+    measurementToDelete = '';
+    const modal = document.getElementById('delete-modal') as HTMLElement;
+    if (modal) {
+      modal.classList.remove('modal-open');
+    }
+  }
+
+  function deleteMeasurement(measurementId: string) {
+    measurements = measurements.filter((m: Measurement) => m.id !== measurementId);
+    localStorage.setItem('kido-measurements', JSON.stringify(measurements));
+    loadDashboard();
+  }
+
+  // Make functions globally available
+  (window as any).showDeleteModal = showDeleteModal;
+  (window as any).closeDeleteModal = closeDeleteModal;
+</script>

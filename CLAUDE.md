@@ -60,6 +60,12 @@
 - **ALWAYS use `/bin/rm`** instead of `rm` for file deletion since `rip` tool is not available.
 - **NEVER run `bun run dev`** as it's an open-ended command that will cause blocking. Only use `bun run build` or similar finite commands for testing.
 
+### UI Components
+- **ALWAYS use DaisyUI components** instead of creating custom components or using manual Tailwind classes.
+- **ALWAYS check Context7 DaisyUI documentation** before implementing any UI component.
+- **NEVER create complex custom JavaScript** when DaisyUI provides the component out of the box.
+- Use `card`, `btn`, `alert`, `modal`, `hero`, `badge`, etc. instead of manual styling.
+
 ### Progress Tracking
 - Always update `tasks.md` with current progress and use it as a checkpoint for task tracking.
 - Track all todos and progress in tasks.md file.

@@ -1,0 +1,445 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Growth Chart - Kido">
+  <div class="min-h-screen bg-base-200 py-8">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h1 class="text-3xl font-bold">Growth Charts</h1>
+          <p class="text-base-content/70" id="child-info">Select a child to view their growth chart</p>
+        </div>
+        <div class="space-x-2">
+          <a href="/children" class="btn btn-outline">← My Children</a>
+          <a href="/add-measurement" class="btn btn-primary">Add Measurement</a>
+        </div>
+      </div>
+
+      <!-- Child Selector -->
+      <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <div class="flex flex-wrap gap-4 items-center">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Select Child:</span>
+              </label>
+              <select id="child-select" class="select select-bordered">
+                <option disabled selected>Choose a child</option>
+              </select>
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Chart Type:</span>
+              </label>
+              <select id="chart-type" class="select select-bordered" disabled>
+                <option value="weight">Weight for Age</option>
+                <option value="height">Height for Age</option>
+                <option value="head">Head Circumference for Age</option>
+                <option value="weight-height">Weight for Height</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title" id="chart-title">Growth Chart</h2>
+          <div class="relative h-96" id="chart-container">
+            <canvas id="growth-chart"></canvas>
+          </div>
+          
+          <!-- Chart Legend -->
+          <div class="alert alert-info mt-4">
+            <div>
+              <h3 class="font-bold">WHO Growth Standards</h3>
+              <p class="text-sm">
+                The lines show WHO percentiles: 3rd, 15th, 50th (median), 85th, and 97th.
+                Your child's measurements are plotted as blue dots.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Data State -->
+      <div id="no-data" class="hero min-h-96 hidden">
+        <div class="hero-content text-center">
+          <div class="max-w-md">
+            <div class="text-9xl mb-4">📊</div>
+            <h3 class="text-2xl font-bold">No measurements yet</h3>
+            <p class="py-6">Add some measurements to see your child's growth chart.</p>
+            <a href="/add-measurement" class="btn btn-primary btn-lg">Add First Measurement</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import {
+    Chart,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+  } from 'chart.js';
+
+  Chart.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+  );
+
+  // Types
+  interface Child {
+    id: string;
+    name: string;
+    dateOfBirth: string;
+    sex: 'male' | 'female';
+    notes: string;
+    createdAt: string;
+  }
+
+  interface Measurement {
+    id: string;
+    childName: string;
+    dateOfBirth: string;
+    measurementDate: string;
+    sex: string;
+    ageInDays: number;
+    weight: number;
+    height: number;
+    headCircumference: number;
+    notes: string;
+    originalUnits: {
+      weight: string;
+      height: string;
+      headCircumference: string;
+    };
+    createdAt: string;
+  }
+
+  // Load data from localStorage
+  let children: Child[] = JSON.parse(localStorage.getItem('kido-children') || '[]');
+  let measurements: Measurement[] = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
+  let selectedChild: Child | null = null;
+  let currentChart: Chart | null = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadChildren();
+    setupEventListeners();
+    
+    // Check if a child was pre-selected
+    const selectedChildId = localStorage.getItem('kido-selected-child');
+    if (selectedChildId) {
+      const childSelect = document.getElementById('child-select') as HTMLSelectElement;
+      childSelect.value = selectedChildId;
+      handleChildSelection();
+      localStorage.removeItem('kido-selected-child');
+    }
+  });
+
+  function setupEventListeners() {
+    const childSelect = document.getElementById('child-select') as HTMLSelectElement;
+    const chartTypeSelect = document.getElementById('chart-type') as HTMLSelectElement;
+
+    if (childSelect) {
+      childSelect.addEventListener('change', handleChildSelection);
+    }
+
+    if (chartTypeSelect) {
+      chartTypeSelect.addEventListener('change', updateChart);
+    }
+  }
+
+  function loadChildren() {
+    const childSelect = document.getElementById('child-select') as HTMLSelectElement;
+    
+    // Clear existing options (except the first one)
+    while (childSelect.children.length > 1) {
+      childSelect.removeChild(childSelect.lastChild!);
+    }
+
+    if (children.length === 0) {
+      return;
+    }
+
+    children.forEach((child: Child) => {
+      const option = document.createElement('option');
+      option.value = child.id;
+      option.textContent = child.name;
+      childSelect.appendChild(option);
+    });
+  }
+
+  function handleChildSelection() {
+    const childSelect = document.getElementById('child-select') as HTMLSelectElement;
+    const chartTypeSelect = document.getElementById('chart-type') as HTMLSelectElement;
+    const childInfo = document.getElementById('child-info') as HTMLElement;
+
+    const selectedChildId = childSelect.value;
+    if (!selectedChildId) {
+      selectedChild = null;
+      chartTypeSelect.disabled = true;
+      childInfo.textContent = 'Select a child to view their growth chart';
+      hideChart();
+      return;
+    }
+
+    selectedChild = children.find(c => c.id === selectedChildId) || null;
+    if (selectedChild) {
+      const age = calculateAge(selectedChild.dateOfBirth);
+      const childMeasurements = measurements.filter(m => m.childName === selectedChild!.name);
+      
+      childInfo.textContent = `${selectedChild.name} • ${selectedChild.sex} • Age: ${age} • ${childMeasurements.length} measurements`;
+      chartTypeSelect.disabled = false;
+      
+      updateChart();
+    }
+  }
+
+  function calculateAge(dateOfBirth: string): string {
+    const today = new Date();
+    const birth = new Date(dateOfBirth);
+    const ageInDays = Math.floor((today.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (ageInDays < 30) {
+      return `${ageInDays} days`;
+    } else if (ageInDays < 365) {
+      const months = Math.floor(ageInDays / 30);
+      const remainingDays = ageInDays % 30;
+      return remainingDays > 0 ? `${months}m ${remainingDays}d` : `${months} months`;
+    } else {
+      const years = Math.floor(ageInDays / 365);
+      const months = Math.floor((ageInDays % 365) / 30);
+      return months > 0 ? `${years}y ${months}m` : `${years} years`;
+    }
+  }
+
+  function updateChart() {
+    if (!selectedChild) return;
+
+    const chartTypeSelect = document.getElementById('chart-type') as HTMLSelectElement;
+    const chartType = chartTypeSelect.value;
+    const childMeasurements = measurements.filter(m => m.childName === selectedChild!.name);
+
+    if (childMeasurements.length === 0) {
+      showNoData();
+      return;
+    }
+
+    hideNoData();
+    createChart(childMeasurements, chartType);
+  }
+
+  function createChart(childMeasurements: Measurement[], chartType: string) {
+    const ctx = document.getElementById('growth-chart') as HTMLCanvasElement;
+    const chartTitle = document.getElementById('chart-title') as HTMLElement;
+
+    // Destroy existing chart
+    if (currentChart) {
+      currentChart.destroy();
+    }
+
+    // Sort measurements by age
+    const sortedMeasurements = childMeasurements.sort((a, b) => a.ageInDays - b.ageInDays);
+
+    // Prepare data based on chart type
+    let yData: number[] = [];
+    let yLabel = '';
+    let title = '';
+
+    switch (chartType) {
+      case 'weight':
+        yData = sortedMeasurements.map(m => m.weight);
+        yLabel = 'Weight (kg)';
+        title = `Weight for Age - ${selectedChild!.name}`;
+        break;
+      case 'height':
+        yData = sortedMeasurements.map(m => m.height);
+        yLabel = 'Height (cm)';
+        title = `Height for Age - ${selectedChild!.name}`;
+        break;
+      case 'head':
+        yData = sortedMeasurements.map(m => m.headCircumference);
+        yLabel = 'Head Circumference (cm)';
+        title = `Head Circumference for Age - ${selectedChild!.name}`;
+        break;
+      case 'weight-height':
+        // For weight-for-height, x-axis is height, y-axis is weight
+        yData = sortedMeasurements.map(m => m.weight);
+        yLabel = 'Weight (kg)';
+        title = `Weight for Height - ${selectedChild!.name}`;
+        break;
+    }
+
+    chartTitle.textContent = title;
+
+    // Convert age to months for x-axis (except weight-for-height)
+    const xData = chartType === 'weight-height' 
+      ? sortedMeasurements.map(m => m.height)
+      : sortedMeasurements.map(m => Math.round(m.ageInDays / 30.44)); // Convert days to months
+
+    const xLabel = chartType === 'weight-height' ? 'Height (cm)' : 'Age (months)';
+
+    // Create simplified WHO percentile lines (demo data)
+    const whoPercentiles = generateWHOPercentiles(chartType, selectedChild!.sex, xData);
+
+    const datasets = [
+      // Child's measurements
+      {
+        label: `${selectedChild!.name}'s measurements`,
+        data: xData.map((x, i) => ({ x, y: yData[i] })),
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        tension: 0.2,
+      },
+      // WHO percentile lines
+      ...whoPercentiles
+    ];
+
+    currentChart = new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: title,
+          },
+          legend: {
+            display: true,
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              title: function(context: any) {
+                const point = context[0];
+                if (chartType === 'weight-height') {
+                  return `Height: ${point.parsed.x} cm`;
+                } else {
+                  return `Age: ${point.parsed.x} months`;
+                }
+              },
+              label: function(context: any) {
+                return `${context.dataset.label}: ${context.parsed.y.toFixed(1)} ${yLabel.includes('kg') ? 'kg' : 'cm'}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: xLabel,
+            },
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: yLabel,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function generateWHOPercentiles(chartType: string, sex: string, xData: number[]) {
+    // Simplified WHO percentile data - in a real app, you'd load actual WHO data
+    const percentiles = [3, 15, 50, 85, 97];
+    const colors = [
+      'rgba(239, 68, 68, 0.6)',   // 3rd percentile - red
+      'rgba(245, 158, 11, 0.6)',  // 15th percentile - amber
+      'rgba(34, 197, 94, 0.8)',   // 50th percentile - green (median)
+      'rgba(245, 158, 11, 0.6)',  // 85th percentile - amber
+      'rgba(239, 68, 68, 0.6)',   // 97th percentile - red
+    ];
+
+    return percentiles.map((percentile, index) => {
+      const yData = xData.map(x => {
+        // Simplified calculation - real WHO data would be much more complex
+        let baseValue = 0;
+        let growthRate = 0;
+
+        switch (chartType) {
+          case 'weight':
+            baseValue = sex === 'male' ? 3.3 : 3.2; // Birth weight kg
+            growthRate = 0.6; // kg per month
+            break;
+          case 'height':
+            baseValue = sex === 'male' ? 50 : 49; // Birth length cm
+            growthRate = 2.5; // cm per month
+            break;
+          case 'head':
+            baseValue = sex === 'male' ? 35 : 34.5; // Birth head circumference cm
+            growthRate = 1.2; // cm per month
+            break;
+          case 'weight-height':
+            // For weight-for-height, x is height, calculate expected weight
+            const heightCm = x;
+            baseValue = (heightCm - 50) * 0.3 + 3.3; // Simplified relationship
+            break;
+        }
+
+        if (chartType === 'weight-height') {
+          const percentileMultiplier = [0.85, 0.92, 1.0, 1.08, 1.15][index];
+          return baseValue * percentileMultiplier;
+        } else {
+          const ageMonths = x;
+          const percentileMultiplier = [0.85, 0.92, 1.0, 1.08, 1.15][index];
+          return (baseValue + (growthRate * ageMonths)) * percentileMultiplier;
+        }
+      });
+
+      return {
+        label: `${percentile}${percentile === 50 ? 'th (median)' : percentile === 3 || percentile === 97 ? 'rd/th' : 'th'} percentile`,
+        data: xData.map((x, i) => ({ x, y: yData[i] })),
+        borderColor: colors[index],
+        backgroundColor: 'transparent',
+        pointRadius: 0,
+        tension: 0.4,
+        borderWidth: percentile === 50 ? 3 : 2,
+        borderDash: percentile === 50 ? [] : [5, 5],
+      };
+    });
+  }
+
+  function showNoData() {
+    document.getElementById('no-data')?.classList.remove('hidden');
+    hideChart();
+  }
+
+  function hideNoData() {
+    document.getElementById('no-data')?.classList.add('hidden');
+  }
+
+  function hideChart() {
+    const chartContainer = document.getElementById('chart-container') as HTMLElement;
+    if (chartContainer) {
+      chartContainer.style.display = 'none';
+    }
+    if (currentChart) {
+      currentChart.destroy();
+      currentChart = null;
+    }
+  }
+</script>
