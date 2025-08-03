@@ -1,0 +1,128 @@
+{
+  "infant_weight_for_age": {
+    "males": [
+      {
+        "Age (in months)": 0,
+        "3rd Percentile Weight (in kilograms)": 2.355451,
+        "5th Percentile Weight (in kilograms)": 2.526904,
+        "10th Percentile Weight (in kilograms)": 2.773802,
+        "25th Percentile Weight (in kilograms)": 3.150611,
+        "50th Percentile Weight (in kilograms)": 3.530203,
+        "75th Percentile Weight (in kilograms)": 3.879077,
+        "90th Percentile Weight (in kilograms)": 4.172493,
+        "95th Percentile Weight (in kilograms)": 4.340293,
+        "97th Percentile Weight (in kilograms)": 4.446488
+      },
+      {
+        "Age (in months)": 0.5,
+        "3rd Percentile Weight (in kilograms)": 2.799549,
+        "5th Percentile Weight (in kilograms)": 2.964656,
+        "10th Percentile Weight (in kilograms)": 3.20951,
+        "25th Percentile Weight (in kilograms)": 3.597396,
+        "50th Percentile Weight (in kilograms)": 4.003106,
+        "75th Percentile Weight (in kilograms)": 4.387423,
+        "90th Percentile Weight (in kilograms)": 4.718161,
+        "95th Percentile Weight (in kilograms)": 4.91013,
+        "97th Percentile Weight (in kilograms)": 5.032625
+      },
+      {
+        "Age (in months)": 1.5,
+        "3rd Percentile Weight (in kilograms)": 3.614688,
+        "5th Percentile Weight (in kilograms)": 3.774849,
+        "10th Percentile Weight (in kilograms)": 4.020561,
+        "25th Percentile Weight (in kilograms)": 4.428873,
+        "50th Percentile Weight (in kilograms)": 4.8656,
+        "75th Percentile Weight (in kilograms)": 5.2796,
+        "90th Percentile Weight (in kilograms)": 5.6324,
+        "95th Percentile Weight (in kilograms)": 5.8404,
+        "97th Percentile Weight (in kilograms)": 5.9749
+      },
+      {
+        "Age (in months)": 2.5,
+        "3rd Percentile Weight (in kilograms)": 4.3096,
+        "5th Percentile Weight (in kilograms)": 4.4754,
+        "10th Percentile Weight (in kilograms)": 4.733,
+        "25th Percentile Weight (in kilograms)": 5.1691,
+        "50th Percentile Weight (in kilograms)": 5.6457,
+        "75th Percentile Weight (in kilograms)": 6.1039,
+        "90th Percentile Weight (in kilograms)": 6.4952,
+        "95th Percentile Weight (in kilograms)": 6.7297,
+        "97th Percentile Weight (in kilograms)": 6.8835
+      }
+    ],
+    "females": [
+      {
+        "Age (in months)": 0,
+        "3rd Percentile Weight (in kilograms)": 2.414112,
+        "5th Percentile Weight (in kilograms)": 2.547905,
+        "10th Percentile Weight (in kilograms)": 2.747222,
+        "25th Percentile Weight (in kilograms)": 3.064865,
+        "50th Percentile Weight (in kilograms)": 3.399186,
+        "75th Percentile Weight (in kilograms)": 3.717519,
+        "90th Percentile Weight (in kilograms)": 3.992572,
+        "95th Percentile Weight (in kilograms)": 4.152637,
+        "97th Percentile Weight (in kilograms)": 4.254922
+      },
+      {
+        "Age (in months)": 0.5,
+        "3rd Percentile Weight (in kilograms)": 2.756917,
+        "5th Percentile Weight (in kilograms)": 2.894442,
+        "10th Percentile Weight (in kilograms)": 3.101767,
+        "25th Percentile Weight (in kilograms)": 3.437628,
+        "50th Percentile Weight (in kilograms)": 3.797528,
+        "75th Percentile Weight (in kilograms)": 4.145594,
+        "90th Percentile Weight (in kilograms)": 4.450126,
+        "95th Percentile Weight (in kilograms)": 4.628836,
+        "97th Percentile Weight (in kilograms)": 4.743582
+      },
+      {
+        "Age (in months)": 1.5,
+        "3rd Percentile Weight (in kilograms)": 3.402293,
+        "5th Percentile Weight (in kilograms)": 3.54761,
+        "10th Percentile Weight (in kilograms)": 3.770157,
+        "25th Percentile Weight (in kilograms)": 4.138994,
+        "50th Percentile Weight (in kilograms)": 4.544777,
+        "75th Percentile Weight (in kilograms)": 4.946766,
+        "90th Percentile Weight (in kilograms)": 5.305632,
+        "95th Percentile Weight (in kilograms)": 5.519169,
+        "97th Percentile Weight (in kilograms)": 5.657379
+      },
+      {
+        "Age (in months)": 2.5,
+        "3rd Percentile Weight (in kilograms)": 3.997806,
+        "5th Percentile Weight (in kilograms)": 4.150639,
+        "10th Percentile Weight (in kilograms)": 4.387042,
+        "25th Percentile Weight (in kilograms)": 4.78482,
+        "50th Percentile Weight (in kilograms)": 5.230584,
+        "75th Percentile Weight (in kilograms)": 5.680083,
+        "90th Percentile Weight (in kilograms)": 6.087641,
+        "95th Percentile Weight (in kilograms)": 6.332837,
+        "97th Percentile Weight (in kilograms)": 6.492574
+      },
+      {
+        "Age (in months)": 3.5,
+        "3rd Percentile Weight (in kilograms)": 4.547383,
+        "5th Percentile Weight (in kilograms)": 4.707123,
+        "10th Percentile Weight (in kilograms)": 4.955926,
+        "25th Percentile Weight (in kilograms)": 5.379141,
+        "50th Percentile Weight (in kilograms)": 5.859961,
+        "75th Percentile Weight (in kilograms)": 6.351512,
+        "90th Percentile Weight (in kilograms)": 6.80277,
+        "95th Percentile Weight (in kilograms)": 7.076723,
+        "97th Percentile Weight (in kilograms)": 7.256166
+      },
+      {
+        "Age (in months)": 4.5,
+        "3rd Percentile Weight (in kilograms)": 5.054539,
+        "5th Percentile Weight (in kilograms)": 5.220488,
+        "10th Percentile Weight (in kilograms)": 5.480295,
+        "25th Percentile Weight (in kilograms)": 5.925888,
+        "50th Percentile Weight (in kilograms)": 6.437588,
+        "75th Percentile Weight (in kilograms)": 6.966524,
+        "90th Percentile Weight (in kilograms)": 7.457119,
+        "95th Percentile Weight (in kilograms)": 7.757234,
+        "97th Percentile Weight (in kilograms)": 7.95473
+      }
+    ]
+  }
+}
