@@ -1,0 +1,74 @@
+---
+// No props needed - will get data from localStorage
+---
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="card-title">Children</h2>
+      <button class="btn btn-secondary btn-sm" onclick="add_child_modal.showModal()">+ Add</button>
+    </div>
+    
+    <!-- Children List -->
+    <div id="children-list" class="space-y-2">
+      <!-- Children will be populated here -->
+    </div>
+
+    <!-- No Children State -->
+    <div id="no-children" class="text-center py-8 hidden">
+      <div class="text-4xl mb-2">👶</div>
+      <p class="text-sm text-base-content/70 mb-4">No children added yet</p>
+      <button class="btn btn-primary btn-sm" onclick="add_child_modal.showModal()">Add First Child</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Child Modal -->
+<dialog id="add-child-modal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Add New Child</h3>
+    <form id="add-child-form" class="py-4 space-y-4">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Child's Name</span>
+        </label>
+        <input type="text" name="name" class="input input-bordered" required />
+      </div>
+      
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Date of Birth</span>
+        </label>
+        <input type="date" name="dateOfBirth" class="input input-bordered" required />
+      </div>
+      
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Sex</span>
+        </label>
+        <select name="sex" class="select select-bordered" required>
+          <option disabled selected>Choose sex</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Notes (optional)</span>
+        </label>
+        <textarea name="notes" class="textarea textarea-bordered" rows="2"></textarea>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn btn-outline">Cancel</button>
+      </form>
+      <button class="btn btn-primary" onclick="saveNewChild()">Save Child</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>

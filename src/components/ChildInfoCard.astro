@@ -1,0 +1,30 @@
+---
+// No props needed - will get data from selected child state
+---
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="flex justify-between items-start">
+      <div>
+        <h2 class="card-title text-2xl" id="selected-child-name">Child Name</h2>
+        <p class="text-base-content/70" id="selected-child-info">Child details</p>
+      </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats stats-horizontal shadow mt-4">
+      <div class="stat">
+        <div class="stat-title">Age</div>
+        <div class="stat-value text-lg" id="selected-child-age">-</div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Measurements</div>
+        <div class="stat-value text-lg" id="selected-child-measurements">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Latest</div>
+        <div class="stat-desc" id="selected-child-latest">No data</div>
+      </div>
+    </div>
+  </div>
+</div>

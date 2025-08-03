@@ -1,0 +1,29 @@
+---
+// No props needed - will get data from localStorage and state
+---
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="card-title">Growth Chart</h3>
+      <div class="join">
+        <button id="chart-btn-weight" class="btn btn-sm join-item btn-primary" onclick="selectChartType('weight')">Weight</button>
+        <button id="chart-btn-height" class="btn btn-sm join-item btn-outline" onclick="selectChartType('height')">Height</button>
+        <button id="chart-btn-head" class="btn btn-sm join-item btn-outline" onclick="selectChartType('head')">Head</button>
+        <button id="chart-btn-weight-height" class="btn btn-sm join-item btn-outline" onclick="selectChartType('weight-height')">W/H</button>
+      </div>
+    </div>
+    
+    <div class="relative h-96 w-full bg-base-200 rounded-lg" id="chart-container">
+      <canvas id="growth-chart" class="w-full h-full"></canvas>
+    </div>
+    
+    <!-- No Measurements for Chart -->
+    <div id="no-chart-data" class="text-center py-8 hidden">
+      <div class="text-6xl mb-4">📈</div>
+      <h4 class="text-lg font-medium mb-2">No measurements to chart</h4>
+      <p class="mb-4">Add some measurements to see growth charts.</p>
+      <button class="btn btn-primary" onclick="addMeasurementForSelected()">Add First Measurement</button>
+    </div>
+  </div>
+</div>
