@@ -3,96 +3,151 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Dashboard - Kido">
-  <div class="min-h-screen bg-base-200 py-8">
-    <div class="container mx-auto px-4 max-w-6xl">
+  <div class="min-h-screen bg-base-200">
+    <div class="container mx-auto px-4 max-w-7xl">
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold">Growth Dashboard</h1>
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <h1 class="text-3xl font-bold">Growth Dashboard</h1>
+          <p class="text-base-content/70">Select a child to view their growth data</p>
+        </div>
         <div class="space-x-2">
           <a href="/add-measurement" class="btn btn-primary">Add Measurement</a>
           <a href="/" class="btn btn-outline">← Home</a>
         </div>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title text-lg">Total Measurements</h2>
-            <div class="text-3xl font-bold text-primary" id="total-measurements">0</div>
-          </div>
-        </div>
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title text-lg">Children Tracked</h2>
-            <div class="text-3xl font-bold text-secondary" id="total-children">0</div>
-          </div>
-        </div>
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title text-lg">Latest Measurement</h2>
-            <div class="text-sm text-base-content/70" id="latest-measurement">No data</div>
-          </div>
-        </div>
-      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 pb-8">
+        <!-- Left Sidebar: Children List -->
+        <div class="lg:col-span-1">
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title">Children</h2>
+                <button class="btn btn-secondary btn-sm" onclick="add_child_modal.showModal()">+ Add</button>
+              </div>
+              
+              <!-- Children List -->
+              <div id="children-list" class="space-y-2">
+                <!-- Children will be populated here -->
+              </div>
 
-      <!-- Child Filter -->
-      <div class="card bg-base-100 shadow-xl mb-6">
-        <div class="card-body">
-          <div class="flex flex-wrap gap-4 items-center">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">Filter by child:</span>
-              </label>
-              <select id="child-filter" class="select select-bordered">
-                <option value="">All children</option>
-              </select>
+              <!-- No Children State -->
+              <div id="no-children" class="text-center py-8 hidden">
+                <div class="text-4xl mb-2">👶</div>
+                <p class="text-sm text-base-content/70 mb-4">No children added yet</p>
+                <button class="btn btn-primary btn-sm" onclick="add_child_modal.showModal()">Add First Child</button>
+              </div>
             </div>
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">Sort by:</span>
-              </label>
-              <select id="sort-filter" class="select select-bordered">
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="child">By child name</option>
-              </select>
-            </div>
-            <button id="clear-data" class="btn btn-error btn-outline mt-8">Clear All Data</button>
           </div>
         </div>
-      </div>
 
-      <!-- Measurements Table -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title mb-4">Measurement History</h2>
-          <div class="overflow-x-auto">
-            <table class="table table-zebra w-full">
-              <thead>
-                <tr>
-                  <th>Child Name</th>
-                  <th>Date</th>
-                  <th>Age</th>
-                  <th>Weight</th>
-                  <th>Height</th>
-                  <th>Head Circumference</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="measurements-table">
-                <!-- Measurements will be populated here -->
-              </tbody>
-            </table>
+        <!-- Right Content: Selected Child Data & Charts -->
+        <div class="lg:col-span-3">
+          <!-- No Selection State -->
+          <div id="no-selection" class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <div class="hero min-h-96">
+                <div class="hero-content text-center">
+                  <div class="max-w-md">
+                    <div class="text-8xl mb-4">📊</div>
+                    <h3 class="text-2xl font-bold">Select a child</h3>
+                    <p class="py-4">Choose a child from the list to view their growth data and charts.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div id="no-data" class="text-center py-8 hidden">
-            <div class="text-base-content/50">
-              <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <h3 class="text-lg font-medium mb-2">No measurements yet</h3>
-              <p class="mb-4">Get started by adding your first measurement.</p>
-              <a href="/add-measurement" class="btn btn-primary">Add First Measurement</a>
+
+          <!-- Selected Child Content -->
+          <div id="selected-child-content" class="space-y-6 hidden">
+            <!-- Child Info Card -->
+            <div class="card bg-base-100 shadow-xl">
+              <div class="card-body">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h2 class="card-title text-2xl" id="selected-child-name">Child Name</h2>
+                    <p class="text-base-content/70" id="selected-child-info">Child details</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="addMeasurementForSelected()">Add Measurement</button>
+                  </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="stats stats-horizontal shadow mt-4">
+                  <div class="stat">
+                    <div class="stat-title">Age</div>
+                    <div class="stat-value text-lg" id="selected-child-age">-</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-title">Measurements</div>
+                    <div class="stat-value text-lg" id="selected-child-measurements">0</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-title">Latest</div>
+                    <div class="stat-desc" id="selected-child-latest">No data</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="card bg-base-100 shadow-xl">
+              <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="card-title">Growth Chart</h3>
+                  <div class="form-control">
+                    <select id="chart-type" class="select select-bordered">
+                      <option value="weight">Weight for Age</option>
+                      <option value="height">Height for Age</option>
+                      <option value="head">Head Circumference for Age</option>
+                      <option value="weight-height">Weight for Height</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="relative h-96" id="chart-container">
+                  <canvas id="growth-chart"></canvas>
+                </div>
+                
+                <!-- No Measurements for Chart -->
+                <div id="no-chart-data" class="text-center py-8 hidden">
+                  <div class="text-6xl mb-4">📈</div>
+                  <h4 class="text-lg font-medium mb-2">No measurements to chart</h4>
+                  <p class="mb-4">Add some measurements to see growth charts.</p>
+                  <button class="btn btn-primary" onclick="addMeasurementForSelected()">Add First Measurement</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Measurements Table -->
+            <div class="card bg-base-100 shadow-xl">
+              <div class="card-body">
+                <h3 class="card-title mb-4">Recent Measurements</h3>
+                
+                <div class="overflow-x-auto">
+                  <table class="table table-zebra">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Age</th>
+                        <th>Weight</th>
+                        <th>Height</th>
+                        <th>Head Circumference</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="selected-child-measurements-table">
+                      <!-- Measurements will be populated here -->
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div id="no-measurements-data" class="text-center py-8 hidden">
+                  <p class="text-base-content/70">No measurements recorded yet.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -100,21 +155,106 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </div>
 
+  <!-- Add Child Modal -->
+  <dialog id="add-child-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Add New Child</h3>
+      <form id="add-child-form" class="py-4 space-y-4">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Child's Name</span>
+          </label>
+          <input type="text" name="name" class="input input-bordered" required />
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Date of Birth</span>
+          </label>
+          <input type="date" name="dateOfBirth" class="input input-bordered" required />
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Sex</span>
+          </label>
+          <select name="sex" class="select select-bordered" required>
+            <option disabled selected>Choose sex</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Notes (optional)</span>
+          </label>
+          <textarea name="notes" class="textarea textarea-bordered" rows="2"></textarea>
+        </div>
+      </form>
+      
+      <div class="modal-action">
+        <form method="dialog">
+          <button class="btn btn-outline">Cancel</button>
+        </form>
+        <button class="btn btn-primary" onclick="saveNewChild()">Save Child</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
   <!-- Delete Confirmation Modal -->
-  <div id="delete-modal" class="modal">
+  <dialog id="delete-modal" class="modal">
     <div class="modal-box">
       <h3 class="font-bold text-lg">Delete Measurement</h3>
       <p class="py-4">Are you sure you want to delete this measurement? This action cannot be undone.</p>
       <div class="modal-action">
-        <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
-        <button class="btn btn-error" id="confirm-delete">Delete</button>
+        <form method="dialog">
+          <button class="btn btn-outline">Cancel</button>
+        </form>
+        <button class="btn btn-error" onclick="deleteMeasurementAndClose()">Delete</button>
       </div>
     </div>
-  </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
 </Layout>
 
 <script>
+  import {
+    Chart,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+  } from 'chart.js';
+
+  Chart.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+  );
+
   // Types
+  interface Child {
+    id: string;
+    name: string;
+    dateOfBirth: string;
+    sex: 'male' | 'female';
+    notes: string;
+    createdAt: string;
+  }
+
   interface Measurement {
     id: string;
     childName: string;
@@ -134,11 +274,12 @@ import Layout from '../layouts/Layout.astro';
     createdAt: string;
   }
 
-  // Load measurements from localStorage
+  // Load data from localStorage
+  let children: Child[] = JSON.parse(localStorage.getItem('kido-children') || '[]');
   let measurements: Measurement[] = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
-  let currentFilter = '';
-  let currentSort = 'newest';
+  let selectedChild: Child | null = null;
   let measurementToDelete = '';
+  let currentChart: Chart | null = null;
 
   document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
@@ -146,140 +287,342 @@ import Layout from '../layouts/Layout.astro';
   });
 
   function setupEventListeners() {
-    const childFilter = document.getElementById('child-filter') as HTMLSelectElement;
-    const sortFilter = document.getElementById('sort-filter') as HTMLSelectElement;
-    const clearDataBtn = document.getElementById('clear-data') as HTMLButtonElement;
-    const confirmDeleteBtn = document.getElementById('confirm-delete') as HTMLButtonElement;
+    const chartTypeSelect = document.getElementById('chart-type') as HTMLSelectElement;
 
-    if (childFilter) {
-      childFilter.addEventListener('change', function() {
-        currentFilter = this.value;
-        renderMeasurements();
-      });
-    }
-
-    if (sortFilter) {
-      sortFilter.addEventListener('change', function() {
-        currentSort = this.value;
-        renderMeasurements();
-      });
-    }
-
-    if (clearDataBtn) {
-      clearDataBtn.addEventListener('click', function() {
-        if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-          localStorage.removeItem('kido-measurements');
-          measurements = [];
-          loadDashboard();
+    if (chartTypeSelect) {
+      chartTypeSelect.addEventListener('change', function() {
+        if (selectedChild) {
+          updateChart();
         }
-      });
-    }
-
-    if (confirmDeleteBtn) {
-      confirmDeleteBtn.addEventListener('click', function() {
-        deleteMeasurement(measurementToDelete);
-        closeDeleteModal();
       });
     }
   }
 
   function loadDashboard() {
-    updateStats();
-    updateChildFilter();
-    renderMeasurements();
+    loadChildrenList();
+    showNoSelection();
   }
 
-  function updateStats() {
-    const totalMeasurements = measurements.length;
-    const uniqueChildren = [...new Set(measurements.map((m: Measurement) => m.childName))].length;
-    const latestMeasurement = measurements.length > 0 ? 
-      measurements.sort((a: Measurement, b: Measurement) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
+  function loadChildrenList() {
+    const childrenList = document.getElementById('children-list')!;
+    const noChildrenDiv = document.getElementById('no-children')!;
 
-    document.getElementById('total-measurements')!.textContent = totalMeasurements.toString();
-    document.getElementById('total-children')!.textContent = uniqueChildren.toString();
+    if (children.length === 0) {
+      childrenList.innerHTML = '';
+      noChildrenDiv.classList.remove('hidden');
+      return;
+    }
+
+    noChildrenDiv.classList.add('hidden');
+
+    childrenList.innerHTML = children.map(child => {
+      const age = calculateAge(child.dateOfBirth);
+      const childMeasurements = measurements.filter(m => m.childName === child.name);
+      const latestMeasurement = childMeasurements.length > 0 ? 
+        childMeasurements.sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
+
+      const isSelected = selectedChild?.id === child.id;
+
+      return `
+        <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''}" onclick="selectChild('${child.id}')">
+          <div class="card-body p-4">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-semibold text-sm">${child.name}</h4>
+                <div class="badge badge-secondary badge-xs">${child.sex}</div>
+              </div>
+            </div>
+            
+            <div class="text-xs text-base-content/70 mt-2">
+              <div>Age: ${age}</div>
+              <div>Measurements: ${childMeasurements.length}</div>
+              ${latestMeasurement ? `<div>Latest: ${new Date(latestMeasurement.measurementDate).toLocaleDateString()}</div>` : '<div>No measurements</div>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function selectChild(childId: string) {
+    selectedChild = children.find(c => c.id === childId) || null;
+    
+    if (selectedChild) {
+      showSelectedChildContent();
+      loadChildrenList(); // Refresh to show selection
+    }
+  }
+
+  function showNoSelection() {
+    document.getElementById('no-selection')!.classList.remove('hidden');
+    document.getElementById('selected-child-content')!.classList.add('hidden');
+  }
+
+  function showSelectedChildContent() {
+    if (!selectedChild) return;
+
+    document.getElementById('no-selection')!.classList.add('hidden');
+    document.getElementById('selected-child-content')!.classList.remove('hidden');
+
+    // Update child info
+    const age = calculateAge(selectedChild.dateOfBirth);
+    const childMeasurements = measurements.filter(m => m.childName === selectedChild!.name);
+    const latestMeasurement = childMeasurements.length > 0 ? 
+      childMeasurements.sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
+
+    document.getElementById('selected-child-name')!.textContent = selectedChild.name;
+    document.getElementById('selected-child-info')!.textContent = 
+      `${selectedChild.sex} • Born: ${new Date(selectedChild.dateOfBirth).toLocaleDateString()}`;
+    document.getElementById('selected-child-age')!.textContent = age;
+    document.getElementById('selected-child-measurements')!.textContent = childMeasurements.length.toString();
     
     if (latestMeasurement) {
-      const date = new Date(latestMeasurement.measurementDate).toLocaleDateString();
-      document.getElementById('latest-measurement')!.textContent = 
-        `${latestMeasurement.childName} - ${date}`;
+      document.getElementById('selected-child-latest')!.textContent = 
+        new Date(latestMeasurement.measurementDate).toLocaleDateString();
     } else {
-      document.getElementById('latest-measurement')!.textContent = 'No data';
+      document.getElementById('selected-child-latest')!.textContent = 'No data';
     }
+
+    // Update chart and measurements table
+    updateChart();
+    updateSelectedChildMeasurementsTable();
   }
 
-  function updateChildFilter() {
-    const childFilter = document.getElementById('child-filter') as HTMLSelectElement;
-    const uniqueChildren = [...new Set(measurements.map((m: Measurement) => m.childName))];
-    
-    // Clear existing options (except "All children")
-    while (childFilter.children.length > 1) {
-      childFilter.removeChild(childFilter.lastChild!);
+  function updateChart() {
+    if (!selectedChild) return;
+
+    const chartTypeSelect = document.getElementById('chart-type') as HTMLSelectElement;
+    const chartType = chartTypeSelect.value;
+    const childMeasurements = measurements.filter(m => m.childName === selectedChild!.name);
+
+    if (childMeasurements.length === 0) {
+      showNoChartData();
+      return;
     }
-    
-    // Add child options
-    uniqueChildren.forEach((childName: string) => {
-      const option = document.createElement('option');
-      option.value = childName;
-      option.textContent = childName;
-      childFilter.appendChild(option);
+
+    hideNoChartData();
+    createChart(childMeasurements, chartType);
+  }
+
+  function createChart(childMeasurements: Measurement[], chartType: string) {
+    const ctx = document.getElementById('growth-chart') as HTMLCanvasElement;
+
+    // Destroy existing chart
+    if (currentChart) {
+      currentChart.destroy();
+    }
+
+    // Sort measurements by age
+    const sortedMeasurements = childMeasurements.sort((a, b) => a.ageInDays - b.ageInDays);
+
+    // Prepare data based on chart type
+    let yData: number[] = [];
+    let yLabel = '';
+    let title = '';
+
+    switch (chartType) {
+      case 'weight':
+        yData = sortedMeasurements.map(m => m.weight);
+        yLabel = 'Weight (kg)';
+        title = `Weight for Age - ${selectedChild!.name}`;
+        break;
+      case 'height':
+        yData = sortedMeasurements.map(m => m.height);
+        yLabel = 'Height (cm)';
+        title = `Height for Age - ${selectedChild!.name}`;
+        break;
+      case 'head':
+        yData = sortedMeasurements.map(m => m.headCircumference);
+        yLabel = 'Head Circumference (cm)';
+        title = `Head Circumference for Age - ${selectedChild!.name}`;
+        break;
+      case 'weight-height':
+        yData = sortedMeasurements.map(m => m.weight);
+        yLabel = 'Weight (kg)';
+        title = `Weight for Height - ${selectedChild!.name}`;
+        break;
+    }
+
+    // Convert age to months for x-axis (except weight-for-height)
+    const xData = chartType === 'weight-height' 
+      ? sortedMeasurements.map(m => m.height)
+      : sortedMeasurements.map(m => Math.round(m.ageInDays / 30.44));
+
+    const xLabel = chartType === 'weight-height' ? 'Height (cm)' : 'Age (months)';
+
+    // Create simplified WHO percentile lines
+    const whoPercentiles = generateWHOPercentiles(chartType, selectedChild!.sex, xData);
+
+    const datasets = [
+      // Child's measurements
+      {
+        label: `${selectedChild!.name}'s measurements`,
+        data: xData.map((x, i) => ({ x, y: yData[i] })),
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        tension: 0.2,
+      },
+      // WHO percentile lines
+      ...whoPercentiles
+    ];
+
+    currentChart = new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: title,
+          },
+          legend: {
+            display: true,
+            position: 'top',
+          },
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: xLabel,
+            },
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: yLabel,
+            },
+          },
+        },
+      },
     });
   }
 
-  function renderMeasurements() {
-    let filteredMeasurements = measurements;
-    
-    // Apply child filter
-    if (currentFilter) {
-      filteredMeasurements = measurements.filter((m: Measurement) => m.childName === currentFilter);
-    }
-    
-    // Apply sorting
-    filteredMeasurements.sort((a: Measurement, b: Measurement) => {
-      switch (currentSort) {
-        case 'newest':
-          return new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime();
-        case 'oldest':
-          return new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime();
-        case 'child':
-          return a.childName.localeCompare(b.childName);
-        default:
-          return 0;
-      }
-    });
+  function generateWHOPercentiles(chartType: string, sex: string, xData: number[]) {
+    const percentiles = [3, 15, 50, 85, 97];
+    const colors = [
+      'rgba(239, 68, 68, 0.6)',
+      'rgba(245, 158, 11, 0.6)',
+      'rgba(34, 197, 94, 0.8)',
+      'rgba(245, 158, 11, 0.6)',
+      'rgba(239, 68, 68, 0.6)',
+    ];
 
-    const tableBody = document.getElementById('measurements-table')!;
-    const noDataDiv = document.getElementById('no-data')!;
-    
-    if (filteredMeasurements.length === 0) {
+    return percentiles.map((percentile, index) => {
+      const yData = xData.map(x => {
+        let baseValue = 0;
+        let growthRate = 0;
+
+        switch (chartType) {
+          case 'weight':
+            baseValue = sex === 'male' ? 3.3 : 3.2;
+            growthRate = 0.6;
+            break;
+          case 'height':
+            baseValue = sex === 'male' ? 50 : 49;
+            growthRate = 2.5;
+            break;
+          case 'head':
+            baseValue = sex === 'male' ? 35 : 34.5;
+            growthRate = 1.2;
+            break;
+          case 'weight-height':
+            const heightCm = x;
+            baseValue = (heightCm - 50) * 0.3 + 3.3;
+            break;
+        }
+
+        if (chartType === 'weight-height') {
+          const percentileMultiplier = [0.85, 0.92, 1.0, 1.08, 1.15][index];
+          return baseValue * percentileMultiplier;
+        } else {
+          const ageMonths = x;
+          const percentileMultiplier = [0.85, 0.92, 1.0, 1.08, 1.15][index];
+          return (baseValue + (growthRate * ageMonths)) * percentileMultiplier;
+        }
+      });
+
+      return {
+        label: `${percentile}${percentile === 50 ? 'th (median)' : percentile === 3 || percentile === 97 ? 'rd/th' : 'th'} percentile`,
+        data: xData.map((x, i) => ({ x, y: yData[i] })),
+        borderColor: colors[index],
+        backgroundColor: 'transparent',
+        pointRadius: 0,
+        tension: 0.4,
+        borderWidth: percentile === 50 ? 3 : 2,
+        borderDash: percentile === 50 ? [] : [5, 5],
+      };
+    });
+  }
+
+  function showNoChartData() {
+    document.getElementById('chart-container')!.style.display = 'none';
+    document.getElementById('no-chart-data')!.classList.remove('hidden');
+  }
+
+  function hideNoChartData() {
+    document.getElementById('chart-container')!.style.display = 'block';
+    document.getElementById('no-chart-data')!.classList.add('hidden');
+  }
+
+  function updateSelectedChildMeasurementsTable() {
+    if (!selectedChild) return;
+
+    const childMeasurements = measurements
+      .filter(m => m.childName === selectedChild!.name)
+      .sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime());
+
+    const tableBody = document.getElementById('selected-child-measurements-table')!;
+    const noDataDiv = document.getElementById('no-measurements-data')!;
+
+    if (childMeasurements.length === 0) {
       tableBody.innerHTML = '';
       noDataDiv.classList.remove('hidden');
     } else {
       noDataDiv.classList.add('hidden');
-      tableBody.innerHTML = filteredMeasurements.map((measurement: Measurement) => {
+      tableBody.innerHTML = childMeasurements.map((measurement: Measurement) => {
         const measurementDate = new Date(measurement.measurementDate).toLocaleDateString();
         const ageText = getAgeText(measurement.ageInDays);
         
         return `
           <tr>
-            <td>
-              <div class="font-medium">${measurement.childName}</div>
-              <div class="text-sm text-base-content/70">${measurement.sex}</div>
-            </td>
             <td>${measurementDate}</td>
             <td>${ageText}</td>
             <td>${measurement.weight.toFixed(1)} kg</td>
             <td>${measurement.height.toFixed(1)} cm</td>
             <td>${measurement.headCircumference.toFixed(1)} cm</td>
             <td>
-              <div class="flex gap-2">
-                <button class="btn btn-xs btn-error btn-outline" onclick="showDeleteModal('${measurement.id}')">
-                  Delete
-                </button>
-              </div>
+              <button class="btn btn-xs btn-error btn-outline" onclick="showDeleteModal('${measurement.id}')">
+                Delete
+              </button>
             </td>
           </tr>
         `;
       }).join('');
+    }
+  }
+
+  function calculateAge(dateOfBirth: string): string {
+    const today = new Date();
+    const birth = new Date(dateOfBirth);
+    const ageInDays = Math.floor((today.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (ageInDays < 30) {
+      return `${ageInDays} days`;
+    } else if (ageInDays < 365) {
+      const months = Math.floor(ageInDays / 30);
+      const remainingDays = ageInDays % 30;
+      return remainingDays > 0 ? `${months}m ${remainingDays}d` : `${months} months`;
+    } else {
+      const years = Math.floor(ageInDays / 365);
+      const months = Math.floor((ageInDays % 365) / 30);
+      return months > 0 ? `${years}y ${months}m` : `${years} years`;
     }
   }
 
@@ -297,29 +640,62 @@ import Layout from '../layouts/Layout.astro';
     }
   }
 
+  function saveNewChild() {
+    const form = document.getElementById('add-child-form') as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const newChild: Child = {
+      id: Date.now().toString(),
+      name: formData.get('name') as string,
+      dateOfBirth: formData.get('dateOfBirth') as string,
+      sex: formData.get('sex') as 'male' | 'female',
+      notes: formData.get('notes') as string,
+      createdAt: new Date().toISOString()
+    };
+    
+    children.push(newChild);
+    localStorage.setItem('kido-children', JSON.stringify(children));
+    
+    // Close modal using DaisyUI method
+    (document.getElementById('add-child-modal') as HTMLDialogElement).close();
+    
+    // Clear form
+    form.reset();
+    
+    loadChildrenList();
+  }
+
+  function addMeasurementForSelected() {
+    if (selectedChild) {
+      localStorage.setItem('kido-selected-child', selectedChild.id);
+      window.location.href = '/add-measurement';
+    }
+  }
+
   function showDeleteModal(measurementId: string) {
     measurementToDelete = measurementId;
-    const modal = document.getElementById('delete-modal') as HTMLElement;
-    if (modal) {
-      modal.classList.add('modal-open');
-    }
+    (document.getElementById('delete-modal') as HTMLDialogElement).showModal();
   }
 
-  function closeDeleteModal() {
-    measurementToDelete = '';
-    const modal = document.getElementById('delete-modal') as HTMLElement;
-    if (modal) {
-      modal.classList.remove('modal-open');
-    }
-  }
-
-  function deleteMeasurement(measurementId: string) {
-    measurements = measurements.filter((m: Measurement) => m.id !== measurementId);
+  function deleteMeasurementAndClose() {
+    measurements = measurements.filter((m: Measurement) => m.id !== measurementToDelete);
     localStorage.setItem('kido-measurements', JSON.stringify(measurements));
-    loadDashboard();
+    
+    // Close modal using DaisyUI method
+    (document.getElementById('delete-modal') as HTMLDialogElement).close();
+    
+    // Clear the measurement ID
+    measurementToDelete = '';
+    
+    if (selectedChild) {
+      showSelectedChildContent(); // Refresh the selected child view
+    }
   }
 
   // Make functions globally available
+  (window as any).selectChild = selectChild;
+  (window as any).saveNewChild = saveNewChild;
+  (window as any).addMeasurementForSelected = addMeasurementForSelected;
   (window as any).showDeleteModal = showDeleteModal;
-  (window as any).closeDeleteModal = closeDeleteModal;
+  (window as any).deleteMeasurementAndClose = deleteMeasurementAndClose;
 </script>

@@ -62,8 +62,10 @@
 
 ### UI Components
 - **ALWAYS use DaisyUI components** instead of creating custom components or using manual Tailwind classes.
-- **ALWAYS check Context7 DaisyUI documentation** before implementing any UI component.
+- **CRITICAL: ALWAYS use Context7 MCP server** to check DaisyUI documentation before implementing any DaisyUI components.
 - **NEVER create complex custom JavaScript** when DaisyUI provides the component out of the box.
+- **NEVER implement custom modal/dialog logic** when DaisyUI provides native solutions.
+- **ALWAYS use proper DaisyUI patterns**: Use `showModal()` and `<dialog>` elements for modals, not custom JavaScript state management.
 - Use `card`, `btn`, `alert`, `modal`, `hero`, `badge`, etc. instead of manual styling.
 
 ### Progress Tracking
