@@ -597,6 +597,13 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     }
   }
 
+  function showAddChildModal() {
+    const modal = document.getElementById('add-child-modal') as HTMLDialogElement;
+    if (modal) {
+      modal.showModal();
+    }
+  }
+
   // Make functions globally available
   (window as any).selectChild = selectChild;
   (window as any).selectChartType = selectChartType;
@@ -604,4 +611,5 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
   (window as any).addMeasurementForSelected = addMeasurementForSelected;
   (window as any).showDeleteModal = showDeleteModal;
   (window as any).deleteMeasurementAndClose = deleteMeasurementAndClose;
+  (window as any).showAddChildModal = showAddChildModal;
 </script>

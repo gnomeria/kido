@@ -7,9 +7,13 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
+    "test": "playwright test --reporter=list",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
     "astro": "astro"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@types/bun": "latest"
   },
   "peerDependencies": {
