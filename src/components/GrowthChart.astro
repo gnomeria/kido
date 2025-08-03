@@ -1,5 +1,6 @@
 ---
-// No props needed - will get data from localStorage and state
+import { calculateZScore, getZScoreForPercentile } from '../scripts/calculate_z_score.js';
+import whoData from '../data/who_growth_data.json';
 ---
 
 <div class="card bg-base-100 shadow-xl">
@@ -27,3 +28,109 @@
     </div>
   </div>
 </div>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { calculateZScore, getZScoreForPercentile } from '../scripts/calculate_z_score.js';
+  import whoData from '../data/who_growth_data.json';
+
+  let growthChart = null;
+
+  function renderChart(child) {
+    console.log("Rendering chart for:", child);
+    const measurements = child.measurements;
+    const gender = child.gender;
+
+    if (!measurements || measurements.length === 0) {
+      document.getElementById('chart-container').classList.add('hidden');
+      document.getElementById('no-chart-data').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('chart-container').classList.remove('hidden');
+    document.getElementById('no-chart-data').classList.add('hidden');
+
+    const labels = measurements.map(m => new Date(m.date).toLocaleDateString());
+    const data = measurements.map(m => m.weight);
+
+    const percentiles = [3, 15, 50, 85, 97];
+
+    const percentileData = percentiles.map(p => {
+        return {
+            label: `${p}th Percentile`,
+            data: whoData.infant_weight_for_age[gender].map(d => {
+                const z = getZScoreForPercentile(p);
+                const l = d.L;
+                const m = d.M;
+                const s = d.S;
+                let percentileValue;
+                if (l !== 0) {
+                    percentileValue = m * Math.pow(1 + l * s * z, 1 / l);
+                } else {
+                    percentileValue = m * Math.exp(s * z);
+                }
+                return { x: d["Age (in months)"], y: percentileValue };
+            }),
+            borderColor: 'rgba(0, 0, 255, 0.2)',
+            borderWidth: 1,
+            fill: false,
+            pointRadius: 0,
+            tension: 0.4
+        };
+    });
+
+    const measurementData = {
+      label: 'Weight',
+      data: measurements.map(m => {
+        const ageInMonths = (new Date(m.date) - new Date(child.dob)) / (1000 * 60 * 60 * 24 * 30.4375);
+        return { x: ageInMonths, y: m.weight };
+      }),
+      borderColor: 'rgba(255, 99, 132, 1)',
+      borderWidth: 2,
+      fill: false
+    };
+
+    const ctx = document.getElementById('growth-chart').getContext('2d');
+
+    if (growthChart) {
+        growthChart.destroy();
+    }
+
+    growthChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [...percentileData, measurementData]
+      },
+      options: {
+        scales: {
+          x: {
+            type: 'linear',
+            position: 'bottom',
+            title: {
+                display: true,
+                text: 'Age (in months)'
+            }
+          },
+          y: {
+            title: {
+                display: true,
+                text: 'Weight (kg)'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const selectedChild = JSON.parse(localStorage.getItem('selectedChild'));
+    if (selectedChild) {
+      renderChart(selectedChild);
+    }
+  });
+
+  window.addEventListener('childChanged', (event) => {
+      renderChart(event.detail);
+  });
+
+</script>

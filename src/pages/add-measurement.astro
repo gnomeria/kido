@@ -49,67 +49,49 @@ import Layout from '../layouts/Layout.astro';
             <!-- Weight -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Weight</span>
+                <span class="label-text">Weight (grams)</span>
               </label>
-              <div class="flex gap-2">
-                <input 
-                  type="number" 
-                  name="weight" 
-                  placeholder="0.0" 
-                  step="0.01" 
-                  min="0" 
-                  class="input input-bordered flex-1" 
-                  required 
-                />
-                <select name="weightUnit" class="select select-bordered">
-                  <option value="kg">kg</option>
-                  <option value="lbs">lbs</option>
-                </select>
-              </div>
+              <input 
+                type="number" 
+                name="weight" 
+                placeholder="e.g., 3450" 
+                step="1" 
+                min="0" 
+                class="input input-bordered w-full" 
+                required 
+              />
             </div>
 
             <!-- Height/Length -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Height/Length</span>
+                <span class="label-text">Height/Length (cm)</span>
               </label>
-              <div class="flex gap-2">
-                <input 
-                  type="number" 
-                  name="height" 
-                  placeholder="0.0" 
-                  step="0.1" 
-                  min="0" 
-                  class="input input-bordered flex-1" 
-                  required 
-                />
-                <select name="heightUnit" class="select select-bordered">
-                  <option value="cm">cm</option>
-                  <option value="inches">inches</option>
-                </select>
-              </div>
+              <input 
+                type="number" 
+                name="height" 
+                placeholder="0.0" 
+                step="0.1" 
+                min="0" 
+                class="input input-bordered w-full" 
+                required 
+              />
             </div>
 
             <!-- Head Circumference -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Head Circumference</span>
+                <span class="label-text">Head Circumference (cm)</span>
               </label>
-              <div class="flex gap-2">
-                <input 
-                  type="number" 
-                  name="headCircumference" 
-                  placeholder="0.0" 
-                  step="0.1" 
-                  min="0" 
-                  class="input input-bordered flex-1" 
-                  required 
-                />
-                <select name="headCircumferenceUnit" class="select select-bordered">
-                  <option value="cm">cm</option>
-                  <option value="inches">inches</option>
-                </select>
-              </div>
+              <input 
+                type="number" 
+                name="headCircumference" 
+                placeholder="0.0" 
+                step="0.1" 
+                min="0" 
+                class="input input-bordered w-full" 
+                required 
+              />
             </div>
 
             <!-- Notes -->
@@ -292,21 +274,11 @@ import Layout from '../layouts/Layout.astro';
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
     
-    // Convert measurements to metric (for standardization)
-    let weight = parseFloat(formData.get('weight') as string);
-    if (formData.get('weightUnit') === 'lbs') {
-      weight = weight * 0.453592; // Convert lbs to kg
-    }
+    let weight = parseFloat(formData.get('weight') as string) / 1000; // Convert grams to kg
     
     let height = parseFloat(formData.get('height') as string);
-    if (formData.get('heightUnit') === 'inches') {
-      height = height * 2.54; // Convert inches to cm
-    }
     
     let headCircumference = parseFloat(formData.get('headCircumference') as string);
-    if (formData.get('headCircumferenceUnit') === 'inches') {
-      headCircumference = headCircumference * 2.54; // Convert inches to cm
-    }
     
     // Get selected child
     const selectedChild = children.find(c => c.id === formData.get('childId'));

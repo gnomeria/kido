@@ -1,16 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Declare global window properties for TypeScript
-declare global {
-  interface Window {
-    Chart: any;
-    selectChild: (childId: string) => void;
-    selectChartType: (chartType: string) => void;
-    saveNewChild: () => void;
-    showAddChildModal: () => void;
-    addMeasurementForSelected: () => void;
-  }
-}
+
 
 test.describe('Dashboard Console Error Detection', () => {
   let consoleErrors: string[] = [];
