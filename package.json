@@ -1,0 +1,25 @@
+{
+  "name": "kido",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@tailwindcss/vite": "^4.1.11",
+    "astro": "^5.12.8",
+    "daisyui": "^5.0.50",
+    "tailwindcss": "^4.1.11"
+  }
+}
