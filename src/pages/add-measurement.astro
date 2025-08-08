@@ -49,7 +49,7 @@ import Layout from '../layouts/Layout.astro';
             <!-- Weight -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Weight (grams)</span>
+                <span class="label-text">Weight (grams) <span class="text-base-content/60">(optional)</span></span>
               </label>
               <input 
                 type="number" 
@@ -58,14 +58,13 @@ import Layout from '../layouts/Layout.astro';
                 step="1" 
                 min="0" 
                 class="input input-bordered w-full" 
-                required 
               />
             </div>
 
             <!-- Height/Length -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Height/Length (cm)</span>
+                <span class="label-text">Height/Length (cm) <span class="text-base-content/60">(optional)</span></span>
               </label>
               <input 
                 type="number" 
@@ -74,14 +73,13 @@ import Layout from '../layouts/Layout.astro';
                 step="0.1" 
                 min="0" 
                 class="input input-bordered w-full" 
-                required 
               />
             </div>
 
             <!-- Head Circumference -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Head Circumference (cm)</span>
+                <span class="label-text">Head Circumference (cm) <span class="text-base-content/60">(optional)</span></span>
               </label>
               <input 
                 type="number" 
@@ -90,8 +88,15 @@ import Layout from '../layouts/Layout.astro';
                 step="0.1" 
                 min="0" 
                 class="input input-bordered w-full" 
-                required 
               />
+            </div>
+
+            <!-- Validation Alert -->
+            <div id="validation-alert" class="alert alert-error hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span id="validation-message">Please provide at least one measurement (weight, height, or head circumference).</span>
             </div>
 
             <!-- Notes -->
@@ -155,9 +160,9 @@ import Layout from '../layouts/Layout.astro';
     measurementDate: string;
     sex: string;
     ageInDays: number;
-    weight: number;
-    height: number;
-    headCircumference: number;
+    weight: number | null;
+    height: number | null;
+    headCircumference: number | null;
     notes: string;
     originalUnits: {
       weight: string;
@@ -274,11 +279,23 @@ import Layout from '../layouts/Layout.astro';
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
     
-    let weight = parseFloat(formData.get('weight') as string) / 1000; // Convert grams to kg
+    // Hide validation alert initially
+    hideValidationAlert();
     
-    let height = parseFloat(formData.get('height') as string);
+    // Parse measurement values (they can be empty/null)
+    const weightValue = formData.get('weight') as string;
+    const heightValue = formData.get('height') as string;
+    const headCircumferenceValue = formData.get('headCircumference') as string;
     
-    let headCircumference = parseFloat(formData.get('headCircumference') as string);
+    const weight = weightValue && !isNaN(parseFloat(weightValue)) ? parseFloat(weightValue) / 1000 : null; // Convert grams to kg
+    const height = heightValue && !isNaN(parseFloat(heightValue)) ? parseFloat(heightValue) : null;
+    const headCircumference = headCircumferenceValue && !isNaN(parseFloat(headCircumferenceValue)) ? parseFloat(headCircumferenceValue) : null;
+    
+    // Validate that at least one measurement is provided
+    if (weight === null && height === null && headCircumference === null) {
+      showValidationAlert('Please provide at least one measurement (weight, height, or head circumference).');
+      return;
+    }
     
     // Get selected child
     const selectedChild = children.find(c => c.id === formData.get('childId'));
@@ -300,14 +317,14 @@ import Layout from '../layouts/Layout.astro';
       measurementDate: formData.get('measurementDate') as string,
       sex: selectedChild.sex,
       ageInDays: childAgeInDays,
-      weight: weight, // Always stored in kg
-      height: height, // Always stored in cm
-      headCircumference: headCircumference, // Always stored in cm
+      weight: weight, // Always stored in kg (can be null)
+      height: height, // Always stored in cm (can be null)
+      headCircumference: headCircumference, // Always stored in cm (can be null)
       notes: formData.get('notes') as string,
       originalUnits: {
-        weight: formData.get('weightUnit') as string,
-        height: formData.get('heightUnit') as string,
-        headCircumference: formData.get('headCircumferenceUnit') as string,
+        weight: 'grams',
+        height: 'cm',
+        headCircumference: 'cm',
       },
       createdAt: new Date().toISOString()
     };
@@ -341,6 +358,24 @@ import Layout from '../layouts/Layout.astro';
     const modal = document.getElementById('success-modal') as HTMLElement;
     if (modal) {
       modal.classList.remove('modal-open');
+    }
+  }
+
+  function showValidationAlert(message: string) {
+    const alert = document.getElementById('validation-alert') as HTMLElement;
+    const messageElement = document.getElementById('validation-message') as HTMLElement;
+    if (alert && messageElement) {
+      messageElement.textContent = message;
+      alert.classList.remove('hidden');
+      // Scroll to the alert
+      alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function hideValidationAlert() {
+    const alert = document.getElementById('validation-alert') as HTMLElement;
+    if (alert) {
+      alert.classList.add('hidden');
     }
   }
 

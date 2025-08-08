@@ -77,9 +77,9 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     measurementDate: string;
     sex: string;
     ageInDays: number;
-    weight: number;
-    height: number;
-    headCircumference: number;
+    weight: number | null;
+    height: number | null;
+    headCircumference: number | null;
     notes: string;
     originalUnits: {
       weight: string;
@@ -252,9 +252,9 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
           <tr>
             <td>${measurementDate}</td>
             <td>${ageText}</td>
-            <td>${measurement.weight.toFixed(1)} kg</td>
-            <td>${measurement.height.toFixed(1)} cm</td>
-            <td>${measurement.headCircumference.toFixed(1)} cm</td>
+            <td>${measurement.weight !== null ? measurement.weight.toFixed(1) + ' kg' : '-'}</td>
+            <td>${measurement.height !== null ? measurement.height.toFixed(1) + ' cm' : '-'}</td>
+            <td>${measurement.headCircumference !== null ? measurement.headCircumference.toFixed(1) + ' cm' : '-'}</td>
             <td>
               <button class="btn btn-xs btn-error btn-outline" onclick="showDeleteModal('${measurement.id}')">
                 Delete
