@@ -1,6 +1,35 @@
+
 ---
-import { calculateZScore, getZScoreForPercentile } from '../scripts/calculate_z_score.js';
-import whoData from '../data/who_growth_data.json';
+// import { getZScoreForPercentile } from '../scripts/calculate_z_score.js';
+// import whoData from '../data/who_growth_data.json';
+// import type { Chart, ChartDataset } from 'chart.js';
+
+// interface Child {
+//   id: string;
+//   name: string;
+//   dateOfBirth: string;
+//   gender: 'males' | 'females';
+//   measurements: Measurement[];
+// }
+
+// interface Measurement {
+//     id: string;
+//     childName: string;
+//     dateOfBirth: string;
+//     measurementDate: string;
+//     sex: string;
+//     ageInDays: number;
+//     weight: number;
+//     height: number;
+//     headCircumference: number;
+//     notes: string;
+//     originalUnits: {
+//       weight: string;
+//       height: string;
+//       headCircumference: string;
+//     };
+//     createdAt: string;
+//   }
 ---
 
 <div class="card bg-base-100 shadow-xl">
@@ -30,67 +59,193 @@ import whoData from '../data/who_growth_data.json';
 </div>
 
 <script>
-  import Chart from 'chart.js/auto';
-  import { calculateZScore, getZScoreForPercentile } from '../scripts/calculate_z_score.js';
+  import { Chart } from 'chart.js/auto';
+  import { getZScoreForPercentile } from '../scripts/calculate_z_score.js';
   import whoData from '../data/who_growth_data.json';
 
-  let growthChart = null;
+  let growthChart: Chart | null = null;
+  let currentChartType = 'weight';
+  let currentChildData: any = null;
 
-  function renderChart(child) {
-    console.log("Rendering chart for:", child);
+  function renderChart(child: any, chartType: string = 'weight') {
+    currentChildData = child;
+    currentChartType = chartType;
+    
     const measurements = child.measurements;
-    const gender = child.gender;
+    // const gender: 'males' | 'females' = child.sex === 'male' ? 'males' : 'females';
+
+    const chartContainer = document.getElementById('chart-container');
+    const noChartData = document.getElementById('no-chart-data');
+
+    if (!chartContainer || !noChartData) return;
 
     if (!measurements || measurements.length === 0) {
-      document.getElementById('chart-container').classList.add('hidden');
-      document.getElementById('no-chart-data').classList.remove('hidden');
+      chartContainer.classList.add('hidden');
+      noChartData.classList.remove('hidden');
       return;
     }
 
-    document.getElementById('chart-container').classList.remove('hidden');
-    document.getElementById('no-chart-data').classList.add('hidden');
+    chartContainer.classList.remove('hidden');
+    noChartData.classList.add('hidden');
+    
+    updateChartButtons(chartType);
 
-    const labels = measurements.map(m => new Date(m.date).toLocaleDateString());
-    const data = measurements.map(m => m.weight);
-
-    const percentiles = [3, 15, 50, 85, 97];
-
-    const percentileData = percentiles.map(p => {
-        return {
-            label: `${p}th Percentile`,
-            data: whoData.infant_weight_for_age[gender].map(d => {
-                const z = getZScoreForPercentile(p);
-                const l = d.L;
-                const m = d.M;
-                const s = d.S;
-                let percentileValue;
-                if (l !== 0) {
-                    percentileValue = m * Math.pow(1 + l * s * z, 1 / l);
-                } else {
-                    percentileValue = m * Math.exp(s * z);
-                }
-                return { x: d["Age (in months)"], y: percentileValue };
-            }),
-            borderColor: 'rgba(0, 0, 255, 0.2)',
-            borderWidth: 1,
+    // Create WHO percentile curves using actual WHO data
+    const percentileData: any[] = [];
+    
+    if (chartType !== 'weight-height' && measurements.length > 0) {
+      const maxAge = Math.max(...measurements.map((m: any) => calculateAgeInMonths(m.measurementDate, child.dateOfBirth))) + 6;
+      const gender = child.sex === 'male' ? 'males' : 'females';
+      
+      let whoGenderData: any[] = [];
+      
+      // Get WHO data for the appropriate measurement type and gender
+      switch (chartType) {
+        case 'weight':
+          whoGenderData = whoData.infant_weight_for_age[gender];
+          break;
+        case 'height':
+          whoGenderData = whoData.height_for_age[gender];
+          break;
+        case 'head':
+          whoGenderData = whoData.head_circumference_for_age[gender];
+          break;
+      }
+      
+      if (whoGenderData && whoGenderData.length > 0) {
+        const percentiles = [3, 15, 50, 85, 97];
+        const colors = ['rgba(220, 53, 69, 0.5)', 'rgba(255, 193, 7, 0.5)', 'rgba(40, 167, 69, 0.8)', 'rgba(255, 193, 7, 0.5)', 'rgba(220, 53, 69, 0.5)'];
+        
+        percentiles.forEach((percentile, index) => {
+          const z = getZScoreForPercentile(percentile);
+          
+          const data = whoGenderData
+            .filter(d => d['Age (in months)'] <= maxAge)
+            .map(d => {
+              const ageInMonths = d['Age (in months)'];
+              const l = d.L;
+              const m = d.M;
+              const s = d.S;
+              
+              // Calculate percentile value using WHO LMS formula
+              let percentileValue;
+              if (l !== 0) {
+                percentileValue = m * Math.pow(1 + l * s * z, 1 / l);
+              } else {
+                percentileValue = m * Math.exp(s * z);
+              }
+              
+              return { x: ageInMonths, y: percentileValue };
+            });
+          
+          percentileData.push({
+            label: `${percentile}th percentile`,
+            data: data,
+            borderColor: colors[index],
+            backgroundColor: 'transparent',
+            borderWidth: percentile === 50 ? 2 : 1,
             fill: false,
             pointRadius: 0,
-            tension: 0.4
+            tension: 0.4,
+            borderDash: percentile === 50 ? [] : [5, 5]
+          });
+        });
+      }
+    }
+
+    // Helper function to calculate age in months properly
+    function calculateAgeInMonths(measurementDate: string, dateOfBirth: string): number {
+      const measurement = new Date(measurementDate);
+      const birth = new Date(dateOfBirth);
+      
+      // Calculate the difference in milliseconds
+      const diffTime = measurement.getTime() - birth.getTime();
+      
+      // Convert to days
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Convert to months (using average month length)
+      const ageInMonths = diffDays / 30.4375;
+      
+      return Math.max(0, Math.round(ageInMonths * 10) / 10); // Round to 1 decimal place
+    }
+
+    let measurementData: any;
+    let yAxisTitle: string;
+    
+    switch (chartType) {
+      case 'height':
+        measurementData = {
+          label: 'Height (cm)',
+          data: measurements.map((m: any) => {
+            const ageInMonths = calculateAgeInMonths(m.measurementDate, child.dateOfBirth);
+            return { x: ageInMonths, y: m.height };
+          }),
+          borderColor: 'rgba(54, 162, 235, 1)',
+          backgroundColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 3,
+          fill: false,
+          pointRadius: 6,
+          pointBorderWidth: 2,
+          pointBorderColor: '#fff'
         };
-    });
+        yAxisTitle = 'Height (cm)';
+        break;
+      case 'head':
+        measurementData = {
+          label: 'Head Circumference (cm)',
+          data: measurements.map((m: any) => {
+            const ageInMonths = calculateAgeInMonths(m.measurementDate, child.dateOfBirth);
+            return { x: ageInMonths, y: m.headCircumference };
+          }),
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 3,
+          fill: false,
+          pointRadius: 6,
+          pointBorderWidth: 2,
+          pointBorderColor: '#fff'
+        };
+        yAxisTitle = 'Head Circumference (cm)';
+        break;
+      case 'weight-height':
+        measurementData = {
+          label: 'Weight vs Height',
+          data: measurements.map((m: any) => {
+            return { x: m.height, y: m.weight };
+          }),
+          borderColor: 'rgba(153, 102, 255, 1)',
+          backgroundColor: 'rgba(153, 102, 255, 1)',
+          borderWidth: 3,
+          fill: false,
+          pointRadius: 6,
+          pointBorderWidth: 2,
+          pointBorderColor: '#fff'
+        };
+        yAxisTitle = 'Weight (kg)';
+        break;
+      default: // weight
+        measurementData = {
+          label: 'Weight (kg)',
+          data: measurements.map((m: any) => {
+            const ageInMonths = calculateAgeInMonths(m.measurementDate, child.dateOfBirth);
+            return { x: ageInMonths, y: m.weight };
+          }),
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 1)',
+          borderWidth: 3,
+          fill: false,
+          pointRadius: 6,
+          pointBorderWidth: 2,
+          pointBorderColor: '#fff'
+        };
+        yAxisTitle = 'Weight (kg)';
+    }
 
-    const measurementData = {
-      label: 'Weight',
-      data: measurements.map(m => {
-        const ageInMonths = (new Date(m.date) - new Date(child.dob)) / (1000 * 60 * 60 * 24 * 30.4375);
-        return { x: ageInMonths, y: m.weight };
-      }),
-      borderColor: 'rgba(255, 99, 132, 1)',
-      borderWidth: 2,
-      fill: false
-    };
-
-    const ctx = document.getElementById('growth-chart').getContext('2d');
+    const canvas = document.getElementById('growth-chart') as HTMLCanvasElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     if (growthChart) {
         growthChart.destroy();
@@ -102,20 +257,48 @@ import whoData from '../data/who_growth_data.json';
         datasets: [...percentileData, measurementData]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         scales: {
           x: {
             type: 'linear',
             position: 'bottom',
             title: {
                 display: true,
-                text: 'Age (in months)'
+                text: chartType === 'weight-height' ? 'Height (cm)' : 'Age (months)'
+            },
+            min: 0,
+            ticks: {
+              stepSize: chartType === 'weight-height' ? undefined : 1,
+              callback: function(value: any) {
+                if (chartType === 'weight-height') return value;
+                const months = Math.round(value);
+                if (months < 0) return '';
+                if (months < 12) {
+                  return months + 'm';
+                } else {
+                  const years = Math.floor(months / 12);
+                  const remainingMonths = months % 12;
+                  return remainingMonths > 0 ? years + 'y ' + remainingMonths + 'm' : years + 'y';
+                }
+              }
             }
           },
           y: {
             title: {
                 display: true,
-                text: 'Weight (kg)'
+                text: yAxisTitle
             }
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          title: {
+            display: true,
+            text: `${child.name}'s Growth Chart`
           }
         }
       }
@@ -123,14 +306,41 @@ import whoData from '../data/who_growth_data.json';
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    const selectedChild = JSON.parse(localStorage.getItem('selectedChild'));
-    if (selectedChild) {
+    const selectedChildItem = localStorage.getItem('selectedChild');
+    if (selectedChildItem) {
+      const selectedChild = JSON.parse(selectedChildItem);
       renderChart(selectedChild);
     }
   });
 
-  window.addEventListener('childChanged', (event) => {
-      renderChart(event.detail);
+  function updateChartButtons(activeType: string) {
+    const buttons = ['weight', 'height', 'head', 'weight-height'];
+    buttons.forEach(type => {
+      const button = document.getElementById(`chart-btn-${type}`);
+      if (button) {
+        if (type === activeType) {
+          button.classList.remove('btn-outline');
+          button.classList.add('btn-primary');
+        } else {
+          button.classList.add('btn-outline');
+          button.classList.remove('btn-primary');
+        }
+      }
+    });
+  }
+
+  function selectChartType(chartType: string) {
+    if (currentChildData) {
+      renderChart(currentChildData, chartType);
+    }
+  }
+
+  window.addEventListener('childChanged', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      renderChart(customEvent.detail, currentChartType);
   });
+
+  // Make functions globally available
+  (window as any).selectChartType = selectChartType;
 
 </script>

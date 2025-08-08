@@ -57,28 +57,8 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
 </Layout>
 
 <script>
-  import {
-    Chart,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    LineController,
-    Title,
-    Tooltip,
-    Legend,
-  } from 'chart.js';
-
-  Chart.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    LineController,
-    Title,
-    Tooltip,
-    Legend
-  );
+  // Make functions globally available for other components
+  // import { Chart } from 'chart.js';
 
   // Types
   interface Child {
@@ -109,54 +89,41 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     createdAt: string;
   }
 
-  // Load data from localStorage
-  let children: Child[] = JSON.parse(localStorage.getItem('kido-children') || '[]');
-  let measurements: Measurement[] = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
+  let children: Child[] = [];
+  let measurements: Measurement[] = [];
   let selectedChild: Child | null = null;
-  let measurementToDelete = '';
-  let currentChart: Chart | null = null;
-  let currentChartType = 'weight';
 
   document.addEventListener('DOMContentLoaded', function() {
-    loadDashboard();
-    setupEventListeners();
-  });
-
-  function setupEventListeners() {
-    // Chart type selection is now handled by onclick events on buttons
-  }
-
-  function selectChartType(chartType: string) {
-    currentChartType = chartType;
-    updateChartButtons();
-    if (selectedChild) {
-      updateChart();
-    }
-  }
-
-  function updateChartButtons() {
-    const chartTypes = ['weight', 'height', 'head', 'weight-height'];
-    
-    chartTypes.forEach(type => {
-      const button = document.getElementById(`chart-btn-${type}`);
-      if (button) {
-        if (type === currentChartType) {
-          button.className = 'btn btn-sm join-item btn-primary';
-        } else {
-          button.className = 'btn btn-sm join-item btn-outline';
-        }
-      }
-    });
-  }
-
-  function loadDashboard() {
+    children = JSON.parse(localStorage.getItem('kido-children') || '[]');
+    measurements = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
     loadChildrenList();
     showNoSelection();
-  }
+  });
+
+  // Refresh data when returning to the page (e.g., after adding measurements)
+  window.addEventListener('focus', function() {
+    const newChildren = JSON.parse(localStorage.getItem('kido-children') || '[]');
+    const newMeasurements = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
+    
+    // Check if data has changed
+    if (JSON.stringify(newChildren) !== JSON.stringify(children) || 
+        JSON.stringify(newMeasurements) !== JSON.stringify(measurements)) {
+      children = newChildren;
+      measurements = newMeasurements;
+      loadChildrenList();
+      
+      // If a child is currently selected, refresh their data
+      if (selectedChild) {
+        selectChild(selectedChild.id);
+      }
+    }
+  });
 
   function loadChildrenList() {
-    const childrenList = document.getElementById('children-list')!;
-    const noChildrenDiv = document.getElementById('no-children')!;
+    const childrenList = document.getElementById('children-list');
+    const noChildrenDiv = document.getElementById('no-children');
+
+    if (!childrenList || !noChildrenDiv) return;
 
     if (children.length === 0) {
       childrenList.innerHTML = '';
@@ -169,10 +136,10 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     childrenList.innerHTML = children.map(child => {
       const age = calculateAge(child.dateOfBirth);
       const childMeasurements = measurements.filter(m => m.childName === child.name);
-      const latestMeasurement = childMeasurements.length > 0 ? 
+      const latestMeasurement = childMeasurements.length > 0 ?
         childMeasurements.sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
 
-      const isSelected = selectedChild?.id === child.id;
+      const isSelected = selectedChild && selectedChild.id === child.id;
 
       return `
         <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''}" onclick="selectChild('${child.id}')">
@@ -199,292 +166,78 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     selectedChild = children.find(c => c.id === childId) || null;
     
     if (selectedChild) {
+      const childWithMeasurements = {
+        ...selectedChild,
+        measurements: measurements.filter(m => m.childName === selectedChild?.name)
+      };
+      const event = new CustomEvent('childChanged', { detail: childWithMeasurements });
+      window.dispatchEvent(event);
       showSelectedChildContent();
       loadChildrenList(); // Refresh to show selection
     }
   }
 
   function showNoSelection() {
-    document.getElementById('no-selection')!.classList.remove('hidden');
-    document.getElementById('selected-child-content')!.classList.add('hidden');
+    const noSelection = document.getElementById('no-selection');
+    const selectedChildContent = document.getElementById('selected-child-content');
+    if (noSelection) noSelection.classList.remove('hidden');
+    if (selectedChildContent) selectedChildContent.classList.add('hidden');
   }
 
   function showSelectedChildContent() {
     if (!selectedChild) return;
 
-    document.getElementById('no-selection')!.classList.add('hidden');
-    document.getElementById('selected-child-content')!.classList.remove('hidden');
+    const noSelection = document.getElementById('no-selection');
+    const selectedChildContent = document.getElementById('selected-child-content');
+    if (noSelection) noSelection.classList.add('hidden');
+    if (selectedChildContent) selectedChildContent.classList.remove('hidden');
 
     // Update child info
     const age = calculateAge(selectedChild.dateOfBirth);
-    const childMeasurements = measurements.filter(m => m.childName === selectedChild!.name);
-    const latestMeasurement = childMeasurements.length > 0 ? 
-      childMeasurements.sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
+    if (selectedChild) {
+      const childMeasurements = measurements.filter(m => m.childName === selectedChild?.name);
+      const latestMeasurement = childMeasurements.length > 0 ?
+        childMeasurements.sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
 
-    document.getElementById('selected-child-name')!.textContent = selectedChild.name;
-    document.getElementById('selected-child-info')!.textContent = 
+      // const isSelected = selectedChild.id === child.id;
+
+    const selectedChildName = document.getElementById('selected-child-name');
+    if (selectedChildName) selectedChildName.textContent = selectedChild.name;
+
+    const selectedChildInfo = document.getElementById('selected-child-info');
+    if (selectedChildInfo) selectedChildInfo.textContent = 
       `${selectedChild.sex} • Born: ${new Date(selectedChild.dateOfBirth).toLocaleDateString()}`;
-    document.getElementById('selected-child-age')!.textContent = age;
-    document.getElementById('selected-child-measurements')!.textContent = childMeasurements.length.toString();
+
+    const selectedChildAge = document.getElementById('selected-child-age');
+    if (selectedChildAge) selectedChildAge.textContent = age;
+
+    const selectedChildMeasurements = document.getElementById('selected-child-measurements');
+    if (selectedChildMeasurements) selectedChildMeasurements.textContent = childMeasurements.length.toString();
     
     if (latestMeasurement) {
-      document.getElementById('selected-child-latest')!.textContent = 
+      const selectedChildLatest = document.getElementById('selected-child-latest');
+      if (selectedChildLatest) selectedChildLatest.textContent = 
         new Date(latestMeasurement.measurementDate).toLocaleDateString();
     } else {
-      document.getElementById('selected-child-latest')!.textContent = 'No data';
+      const selectedChildLatest = document.getElementById('selected-child-latest');
+      if (selectedChildLatest) selectedChildLatest.textContent = 'No data';
     }
 
-    // Update chart and measurements table
-    updateChartButtons();
-    updateChart();
     updateSelectedChildMeasurementsTable();
-  }
-
-  function updateChart() {
-    if (!selectedChild) return;
-
-    const childMeasurements = measurements.filter(m => m.childName === selectedChild!.name);
-
-    if (childMeasurements.length === 0) {
-      showNoChartData();
-      return;
     }
-
-    hideNoChartData();
-    createChart(childMeasurements, currentChartType);
-  }
-
-  function createChart(childMeasurements: Measurement[], chartType: string) {
-    const ctx = document.getElementById('growth-chart') as HTMLCanvasElement;
-    
-    if (!ctx) {
-      console.error('Canvas element not found');
-      return;
-    }
-
-    // Destroy existing chart completely
-    if (currentChart) {
-      currentChart.destroy();
-      currentChart = null;
-    }
-    
-    // Clear any existing Chart instances on this canvas
-    Chart.getChart(ctx)?.destroy();
-
-    // Sort measurements by age
-    const sortedMeasurements = childMeasurements.sort((a, b) => a.ageInDays - b.ageInDays);
-
-    // Prepare data based on chart type
-    let yData: number[] = [];
-    let yLabel = '';
-    let title = '';
-
-    switch (chartType) {
-      case 'weight':
-        yData = sortedMeasurements.map(m => m.weight);
-        yLabel = 'Weight (kg)';
-        title = `Weight for Age - ${selectedChild!.name}`;
-        break;
-      case 'height':
-        yData = sortedMeasurements.map(m => m.height);
-        yLabel = 'Height (cm)';
-        title = `Height for Age - ${selectedChild!.name}`;
-        break;
-      case 'head':
-        yData = sortedMeasurements.map(m => m.headCircumference);
-        yLabel = 'Head Circumference (cm)';
-        title = `Head Circumference for Age - ${selectedChild!.name}`;
-        break;
-      case 'weight-height':
-        yData = sortedMeasurements.map(m => m.weight);
-        yLabel = 'Weight (kg)';
-        title = `Weight for Height - ${selectedChild!.name}`;
-        break;
-    }
-
-    // Convert age to months for x-axis (except weight-for-height)
-    const xData = chartType === 'weight-height' 
-      ? sortedMeasurements.map(m => m.height)
-      : sortedMeasurements.map(m => Math.round(m.ageInDays / 30.44));
-
-    const xLabel = chartType === 'weight-height' ? 'Height (cm)' : 'Age (months)';
-
-    // Create age range for WHO percentiles (0 to max age + buffer)
-    const maxAge = chartType === 'weight-height' 
-      ? Math.max(...xData) + 10 
-      : Math.max(...xData, 24); // At least 24 months
-    
-    const ageRange = chartType === 'weight-height'
-      ? Array.from({length: Math.ceil(maxAge/5)}, (_, i) => 50 + i * 5) // Height range 50-100cm
-      : Array.from({length: maxAge + 1}, (_, i) => i); // Age range 0-maxAge months
-
-    // Create WHO percentile lines
-    const whoPercentiles = generateWHOPercentiles(chartType, selectedChild!.sex, ageRange);
-
-    const datasets = [
-      // Child's measurements
-      {
-        label: `${selectedChild!.name}'s measurements`,
-        data: xData.map((x, i) => ({ x, y: yData[i] })),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        tension: 0.2,
-      },
-      // WHO percentile lines
-      ...whoPercentiles
-    ];
-
-    try {
-      currentChart = new Chart(ctx, {
-        type: 'line',
-        data: { datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            title: {
-              display: true,
-              text: title,
-            },
-            legend: {
-              display: true,
-              position: 'top',
-            },
-          },
-          scales: {
-            x: {
-              type: 'linear',
-              display: true,
-              title: {
-                display: true,
-                text: xLabel,
-              },
-              ticks: {
-                stepSize: chartType === 'weight-height' ? 5 : 3,
-                callback: function(value) {
-                  return chartType === 'weight-height' ? value + ' cm' : value + ' mo';
-                }
-              },
-              min: chartType === 'weight-height' ? 50 : 0,
-            },
-            y: {
-              display: true,
-              title: {
-                display: true,
-                text: yLabel,
-              },
-              ticks: {
-                stepSize: chartType === 'weight' ? 0.5 : chartType === 'height' ? 2 : 0.5,
-              }
-            },
-          },
-        },
-      });
-      console.log('Chart created successfully:', currentChart);
-    } catch (error) {
-      console.error('Error creating chart:', error);
-    }
-  }
-
-  function generateWHOPercentiles(chartType: string, sex: string, xData: number[]) {
-    const percentiles = [3, 15, 50, 85, 97];
-    const colors = [
-      'rgba(239, 68, 68, 0.8)',    // Red for 3rd
-      'rgba(245, 158, 11, 0.8)',   // Orange for 15th
-      'rgba(34, 197, 94, 0.9)',    // Green for 50th (median)
-      'rgba(245, 158, 11, 0.8)',   // Orange for 85th
-      'rgba(239, 68, 68, 0.8)',    // Red for 97th
-    ];
-
-    return percentiles.map((percentile, index) => {
-      const yData = xData.map(x => {
-        let value = 0;
-
-        switch (chartType) {
-          case 'weight':
-            // Improved weight-for-age approximation
-            const birthWeight = sex === 'male' ? 3.3 : 3.2;
-            const ageMonths = x;
-            if (ageMonths <= 12) {
-              // Rapid growth first year
-              value = birthWeight + (ageMonths * 0.65);
-            } else {
-              // Slower growth after first year
-              value = birthWeight + (12 * 0.65) + ((ageMonths - 12) * 0.25);
-            }
-            break;
-            
-          case 'height':
-            // Improved height-for-age approximation
-            const birthHeight = sex === 'male' ? 50 : 49.5;
-            const months = x;
-            if (months <= 12) {
-              // Rapid growth first year (about 25cm)
-              value = birthHeight + (months * 2.1);
-            } else {
-              // Slower growth after first year
-              value = birthHeight + (12 * 2.1) + ((months - 12) * 1.0);
-            }
-            break;
-            
-          case 'head':
-            // Head circumference approximation
-            const birthHead = sex === 'male' ? 35 : 34.5;
-            const headMonths = x;
-            if (headMonths <= 6) {
-              value = birthHead + (headMonths * 0.8);
-            } else {
-              value = birthHead + (6 * 0.8) + ((headMonths - 6) * 0.3);
-            }
-            break;
-            
-          case 'weight-height':
-            // Weight-for-height approximation
-            const heightCm = x;
-            value = (heightCm - 45) * 0.25 + 2.5;
-            break;
-        }
-
-        // Apply percentile multipliers
-        const multipliers = [0.82, 0.91, 1.0, 1.09, 1.18]; // More realistic spread
-        return Math.max(0, value * multipliers[index]);
-      });
-
-      return {
-        label: `P${percentile}${percentile === 50 ? ' (median)' : ''}`,
-        data: xData.map((x, i) => ({ x, y: yData[i] })),
-        borderColor: colors[index],
-        backgroundColor: 'transparent',
-        pointRadius: 0,
-        tension: 0.3,
-        borderWidth: percentile === 50 ? 3 : 2,
-        borderDash: percentile === 50 ? [] : [3, 3],
-        fill: false,
-      };
-    });
-  }
-
-  function showNoChartData() {
-    document.getElementById('chart-container')!.style.display = 'none';
-    document.getElementById('no-chart-data')!.classList.remove('hidden');
-  }
-
-  function hideNoChartData() {
-    document.getElementById('chart-container')!.style.display = 'block';
-    document.getElementById('no-chart-data')!.classList.add('hidden');
   }
 
   function updateSelectedChildMeasurementsTable() {
     if (!selectedChild) return;
 
     const childMeasurements = measurements
-      .filter(m => m.childName === selectedChild!.name)
+      .filter(m => m.childName === selectedChild?.name)
       .sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime());
 
-    const tableBody = document.getElementById('selected-child-measurements-table')!;
-    const noDataDiv = document.getElementById('no-measurements-data')!;
+    const tableBody = document.getElementById('selected-child-measurements-table');
+    const noDataDiv = document.getElementById('no-measurements-data');
+
+    if (!tableBody || !noDataDiv) return;
 
     if (childMeasurements.length === 0) {
       tableBody.innerHTML = '';
@@ -510,6 +263,15 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
           </tr>
         `;
       }).join('');
+    }
+  }
+
+  
+
+  function addMeasurementForSelected() {
+    if (selectedChild) {
+      localStorage.setItem('kido-selected-child', selectedChild.id);
+      window.location.href = '/add-measurement';
     }
   }
 
@@ -545,71 +307,34 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     }
   }
 
-  function saveNewChild() {
-    const form = document.getElementById('add-child-form') as HTMLFormElement;
-    const formData = new FormData(form);
-    
-    const newChild: Child = {
-      id: Date.now().toString(),
-      name: formData.get('name') as string,
-      dateOfBirth: formData.get('dateOfBirth') as string,
-      sex: formData.get('sex') as 'male' | 'female',
-      notes: formData.get('notes') as string,
-      createdAt: new Date().toISOString()
-    };
-    
-    children.push(newChild);
-    localStorage.setItem('kido-children', JSON.stringify(children));
-    
-    // Close modal using DaisyUI method
-    (document.getElementById('add-child-modal') as HTMLDialogElement).close();
-    
-    // Clear form
-    form.reset();
-    
-    loadChildrenList();
-  }
-
-  function addMeasurementForSelected() {
-    if (selectedChild) {
-      localStorage.setItem('kido-selected-child', selectedChild.id);
-      window.location.href = '/add-measurement';
-    }
-  }
-
   function showDeleteModal(measurementId: string) {
-    measurementToDelete = measurementId;
-    (document.getElementById('delete-modal') as HTMLDialogElement).showModal();
-  }
-
-  function deleteMeasurementAndClose() {
-    measurements = measurements.filter((m: Measurement) => m.id !== measurementToDelete);
-    localStorage.setItem('kido-measurements', JSON.stringify(measurements));
-    
-    // Close modal using DaisyUI method
-    (document.getElementById('delete-modal') as HTMLDialogElement).close();
-    
-    // Clear the measurement ID
-    measurementToDelete = '';
-    
-    if (selectedChild) {
-      showSelectedChildContent(); // Refresh the selected child view
-    }
-  }
-
-  function showAddChildModal() {
-    const modal = document.getElementById('add-child-modal') as HTMLDialogElement;
+    const modal = document.getElementById('delete-modal') as HTMLDialogElement;
     if (modal) {
       modal.showModal();
+      const deleteButton = modal.querySelector('.btn-error');
+      if (deleteButton) {
+        deleteButton.addEventListener('click', () => deleteMeasurement(measurementId));
+      }
+    }
+  }
+
+  function deleteMeasurement(measurementId: string) {
+    measurements = measurements.filter((m: Measurement) => m.id !== measurementId);
+    localStorage.setItem('kido-measurements', JSON.stringify(measurements));
+    
+    const modal = document.getElementById('delete-modal') as HTMLDialogElement;
+    if (modal) {
+      modal.close();
+    }
+    
+    if (selectedChild) {
+      selectChild(selectedChild.id);
     }
   }
 
   // Make functions globally available
   (window as any).selectChild = selectChild;
-  (window as any).selectChartType = selectChartType;
-  (window as any).saveNewChild = saveNewChild;
   (window as any).addMeasurementForSelected = addMeasurementForSelected;
   (window as any).showDeleteModal = showDeleteModal;
-  (window as any).deleteMeasurementAndClose = deleteMeasurementAndClose;
-  (window as any).showAddChildModal = showAddChildModal;
+  (window as any).deleteMeasurement = deleteMeasurement;
 </script>

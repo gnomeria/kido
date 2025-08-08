@@ -72,3 +72,153 @@
     <button>close</button>
   </form>
 </dialog>
+
+<script>
+  // Types
+  interface Child {
+    id: string;
+    name: string;
+    dateOfBirth: string;
+    sex: 'male' | 'female';
+    notes: string;
+    createdAt: string;
+  }
+
+  // Load existing data
+  let children: Child[] = JSON.parse(localStorage.getItem('kido-children') || '[]');
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadChildrenList();
+  });
+
+  // Listen for data changes and refresh
+  window.addEventListener('focus', function() {
+    const newChildren = JSON.parse(localStorage.getItem('kido-children') || '[]');
+    if (JSON.stringify(newChildren) !== JSON.stringify(children)) {
+      children = newChildren;
+      loadChildrenList();
+    }
+  });
+
+  // Listen for child list refresh requests
+  window.addEventListener('refreshChildrenList', function() {
+    children = JSON.parse(localStorage.getItem('kido-children') || '[]');
+    loadChildrenList();
+  });
+
+  function loadChildrenList() {
+    const childrenList = document.getElementById('children-list');
+    const noChildrenDiv = document.getElementById('no-children');
+
+    if (!childrenList || !noChildrenDiv) return;
+
+    if (children.length === 0) {
+      childrenList.innerHTML = '';
+      noChildrenDiv.classList.remove('hidden');
+      return;
+    }
+
+    noChildrenDiv.classList.add('hidden');
+
+    childrenList.innerHTML = children.map(child => {
+      const age = calculateAge(child.dateOfBirth);
+      
+      return `
+        <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onclick="selectChild('${child.id}')">
+          <div class="card-body p-4">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-semibold text-sm">${child.name}</h4>
+                <div class="badge badge-primary badge-xs">${child.sex}</div>
+              </div>
+            </div>
+            
+            <div class="text-xs text-base-content/70 mt-2">
+              <div>Age: ${age}</div>
+              <div>Born: ${new Date(child.dateOfBirth).toLocaleDateString()}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function calculateAge(dateOfBirth: string): string {
+    const today = new Date();
+    const birth = new Date(dateOfBirth);
+    const ageInDays = Math.floor((today.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (ageInDays < 30) {
+      return `${ageInDays} days`;
+    } else if (ageInDays < 365) {
+      const months = Math.floor(ageInDays / 30);
+      const remainingDays = ageInDays % 30;
+      return remainingDays > 0 ? `${months}m ${remainingDays}d` : `${months} months`;
+    } else {
+      const years = Math.floor(ageInDays / 365);
+      const months = Math.floor((ageInDays % 365) / 30);
+      return months > 0 ? `${years}y ${months}m` : `${years} years`;
+    }
+  }
+
+  function showAddChildModal() {
+    const modal = document.getElementById('add-child-modal') as HTMLDialogElement;
+    if (modal) {
+      modal.showModal();
+    }
+  }
+
+  function saveNewChild() {
+    const form = document.getElementById('add-child-form') as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    // Check if child name already exists
+    const name = formData.get('name') as string;
+    const existingChild = children.find(child => child.name.toLowerCase() === name.toLowerCase());
+    
+    if (existingChild) {
+      alert('A child with this name already exists. Please use a different name.');
+      return;
+    }
+
+    // Create child object
+    const child: Child = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      dateOfBirth: formData.get('dateOfBirth') as string,
+      sex: formData.get('sex') as 'male' | 'female',
+      notes: (formData.get('notes') as string).trim(),
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save to localStorage
+    children.push(child);
+    localStorage.setItem('kido-children', JSON.stringify(children));
+    
+    // Close modal and reset form
+    const modal = document.getElementById('add-child-modal') as HTMLDialogElement;
+    if (modal) {
+      modal.close();
+    }
+    form.reset();
+    
+    // Reload the children list
+    loadChildrenList();
+  }
+
+  function selectChild(childId: string) {
+    // This will be handled by the parent dashboard component
+    const selectedChild = children.find(c => c.id === childId);
+    if (selectedChild) {
+      // Trigger the selectChild function from dashboard
+      if (typeof (window as any).selectChild === 'function') {
+        (window as any).selectChild(childId);
+      }
+    }
+  }
+
+  // Make functions globally available
+  (window as any).showAddChildModal = showAddChildModal;
+  (window as any).saveNewChild = saveNewChild;
+  (window as any).loadChildrenList = loadChildrenList;
+</script>

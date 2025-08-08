@@ -1,0 +1,179 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Add Child - Kido">
+  <div class="min-h-screen bg-base-200 py-8">
+    <div class="container mx-auto px-4 max-w-lg">
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title text-2xl mb-6">Add New Child</h2>
+          
+          <form id="child-form" class="space-y-4">
+            <!-- Child Name -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Child's Name</span>
+              </label>
+              <input 
+                type="text" 
+                name="name" 
+                placeholder="Enter child's full name" 
+                class="input input-bordered w-full" 
+                required 
+              />
+            </div>
+
+            <!-- Date of Birth -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Date of Birth</span>
+              </label>
+              <input 
+                type="date" 
+                name="dateOfBirth" 
+                class="input input-bordered w-full" 
+                required 
+              />
+            </div>
+
+            <!-- Sex -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Sex</span>
+              </label>
+              <div class="flex gap-4">
+                <label class="cursor-pointer flex items-center gap-2">
+                  <input type="radio" name="sex" value="male" class="radio radio-primary" required />
+                  <span class="label-text">Male</span>
+                </label>
+                <label class="cursor-pointer flex items-center gap-2">
+                  <input type="radio" name="sex" value="female" class="radio radio-primary" required />
+                  <span class="label-text">Female</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Notes (optional)</span>
+              </label>
+              <textarea 
+                name="notes" 
+                placeholder="Any additional notes about your child..." 
+                class="textarea textarea-bordered w-full"
+                rows="3"
+              ></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-control mt-6">
+              <button type="submit" class="btn btn-primary btn-lg w-full">
+                Add Child
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="mt-6 text-center">
+        <a href="/" class="btn btn-outline">← Back to Home</a>
+        <a href="/dashboard" class="btn btn-outline ml-2">View Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <dialog id="success-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Child Added Successfully!</h3>
+      <p class="py-4">The child profile has been created. You can now add measurements for them.</p>
+      <div class="modal-action">
+        <button class="btn btn-primary" onclick="closeSuccessModal()">Continue</button>
+      </div>
+    </div>
+  </dialog>
+</Layout>
+
+<script>
+  // Types
+  interface Child {
+    id: string;
+    name: string;
+    dateOfBirth: string;
+    sex: 'male' | 'female';
+    notes: string;
+    createdAt: string;
+  }
+
+  // Load existing data
+  let children: Child[] = JSON.parse(localStorage.getItem('kido-children') || '[]');
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Form submission handler
+    const form = document.getElementById('child-form') as HTMLFormElement;
+    if (form) {
+      form.addEventListener('submit', handleFormSubmit);
+    }
+  });
+
+  function handleFormSubmit(event: Event) {
+    event.preventDefault();
+    
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    // Check if child name already exists
+    const name = formData.get('name') as string;
+    const existingChild = children.find(child => child.name.toLowerCase() === name.toLowerCase());
+    
+    if (existingChild) {
+      alert('A child with this name already exists. Please use a different name or add a last name to differentiate.');
+      return;
+    }
+
+    // Create child object
+    const child: Child = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      dateOfBirth: formData.get('dateOfBirth') as string,
+      sex: formData.get('sex') as 'male' | 'female',
+      notes: (formData.get('notes') as string).trim(),
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save to localStorage
+    children.push(child);
+    localStorage.setItem('kido-children', JSON.stringify(children));
+    
+    // Show success modal
+    showSuccessModal();
+    
+    // Reset form
+    form.reset();
+  }
+
+  function showSuccessModal() {
+    const modal = document.getElementById('success-modal') as HTMLDialogElement;
+    if (modal) {
+      modal.showModal();
+    }
+  }
+
+  function closeSuccessModal() {
+    const modal = document.getElementById('success-modal') as HTMLDialogElement;
+    if (modal) {
+      modal.close();
+    }
+    
+    // Redirect to dashboard after closing modal
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 500);
+  }
+
+  // Make functions globally available
+  (window as any).closeSuccessModal = closeSuccessModal;
+</script>
