@@ -173,10 +173,9 @@ import Layout from '../layouts/Layout.astro';
   }
 
   // In-memory storage for data
-  let children: Child[] = JSON.parse(localStorage.getItem('kido-children') || '[]');
-  let measurements: Measurement[] = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
+  let children: Child[] = [];
 
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', async function() {
     // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
     const measurementDateInput = document.querySelector('input[name="measurementDate"]') as HTMLInputElement;
@@ -184,8 +183,8 @@ import Layout from '../layouts/Layout.astro';
       measurementDateInput.value = today;
     }
 
-    // Load children into dropdown
-    loadChildren();
+    // Load children from API
+    await loadChildren();
 
     // Handle child selection
     const childSelect = document.getElementById('child-select') as HTMLSelectElement;
@@ -201,37 +200,51 @@ import Layout from '../layouts/Layout.astro';
 
     // Check if a child was pre-selected (from children page)
     const selectedChildId = localStorage.getItem('kido-selected-child');
-    if (selectedChildId) {
+    if (selectedChildId && children.length > 0) {
       childSelect.value = selectedChildId;
       handleChildSelection();
       localStorage.removeItem('kido-selected-child'); // Clean up
     }
   });
 
-  function loadChildren() {
+  async function loadChildren() {
     const childSelect = document.getElementById('child-select') as HTMLSelectElement;
     
-    // Clear existing options (except the first one)
-    while (childSelect.children.length > 1) {
-      childSelect.removeChild(childSelect.lastChild!);
-    }
+    try {
+      const response = await fetch('/api/children');
+      if (!response.ok) {
+        throw new Error('Failed to fetch children');
+      }
+      children = await response.json();
+      
+      // Clear existing options (except the first one)
+      while (childSelect.children.length > 1) {
+        childSelect.removeChild(childSelect.lastChild!);
+      }
 
-    // Check if there are no children
-    if (children.length === 0) {
+      // Check if there are no children
+      if (children.length === 0) {
+        const noChildrenOption = document.createElement('option');
+        noChildrenOption.disabled = true;
+        noChildrenOption.textContent = 'No children added yet';
+        childSelect.appendChild(noChildrenOption);
+        return;
+      }
+
+      // Add children options
+      children.forEach((child: Child) => {
+        const option = document.createElement('option');
+        option.value = child.id;
+        option.textContent = child.name;
+        childSelect.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Error loading children:', error);
       const noChildrenOption = document.createElement('option');
       noChildrenOption.disabled = true;
-      noChildrenOption.textContent = 'No children added yet';
+      noChildrenOption.textContent = 'Error loading children';
       childSelect.appendChild(noChildrenOption);
-      return;
     }
-
-    // Add children options
-    children.forEach((child: Child) => {
-      const option = document.createElement('option');
-      option.value = child.id;
-      option.textContent = child.name;
-      childSelect.appendChild(option);
-    });
   }
 
   function handleChildSelection() {
@@ -273,7 +286,7 @@ import Layout from '../layouts/Layout.astro';
     }
   }
 
-  function handleFormSubmit(event: Event) {
+  async function handleFormSubmit(event: Event) {
     event.preventDefault();
     
     const form = event.target as HTMLFormElement;
@@ -282,68 +295,86 @@ import Layout from '../layouts/Layout.astro';
     // Hide validation alert initially
     hideValidationAlert();
     
-    // Parse measurement values (they can be empty/null)
-    const weightValue = formData.get('weight') as string;
-    const heightValue = formData.get('height') as string;
-    const headCircumferenceValue = formData.get('headCircumference') as string;
-    
-    const weight = weightValue && !isNaN(parseFloat(weightValue)) ? parseFloat(weightValue) / 1000 : null; // Convert grams to kg
-    const height = heightValue && !isNaN(parseFloat(heightValue)) ? parseFloat(heightValue) : null;
-    const headCircumference = headCircumferenceValue && !isNaN(parseFloat(headCircumferenceValue)) ? parseFloat(headCircumferenceValue) : null;
-    
-    // Validate that at least one measurement is provided
-    if (weight === null && height === null && headCircumference === null) {
-      showValidationAlert('Please provide at least one measurement (weight, height, or head circumference).');
-      return;
-    }
-    
-    // Get selected child
-    const selectedChild = children.find(c => c.id === formData.get('childId'));
-    if (!selectedChild) {
-      alert('Please select a child first.');
-      return;
+    const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Saving...';
     }
 
-    // Calculate age in days
-    const formMeasurementDate = new Date(formData.get('measurementDate') as string);
-    const childDateOfBirth = new Date(selectedChild.dateOfBirth);
-    const childAgeInDays = Math.floor((formMeasurementDate.getTime() - childDateOfBirth.getTime()) / (1000 * 60 * 60 * 24));
+    try {
+      // Parse measurement values (they can be empty/null)
+      const weightValue = formData.get('weight') as string;
+      const heightValue = formData.get('height') as string;
+      const headCircumferenceValue = formData.get('headCircumference') as string;
+      
+      const weight = weightValue && !isNaN(parseFloat(weightValue)) ? parseFloat(weightValue) / 1000 : null; // Convert grams to kg
+      const height = heightValue && !isNaN(parseFloat(heightValue)) ? parseFloat(heightValue) : null;
+      const headCircumference = headCircumferenceValue && !isNaN(parseFloat(headCircumferenceValue)) ? parseFloat(headCircumferenceValue) : null;
+      
+      // Validate that at least one measurement is provided
+      if (weight === null && height === null && headCircumference === null) {
+        showValidationAlert('Please provide at least one measurement (weight, height, or head circumference).');
+        return;
+      }
+      
+      // Get selected child
+      const selectedChild = children.find(c => c.id === formData.get('childId'));
+      if (!selectedChild) {
+        showValidationAlert('Please select a child first.');
+        return;
+      }
 
-    // Create measurement object
-    const measurement: Measurement = {
-      id: Date.now().toString(),
-      childName: selectedChild.name,
-      dateOfBirth: selectedChild.dateOfBirth,
-      measurementDate: formData.get('measurementDate') as string,
-      sex: selectedChild.sex,
-      ageInDays: childAgeInDays,
-      weight: weight, // Always stored in kg (can be null)
-      height: height, // Always stored in cm (can be null)
-      headCircumference: headCircumference, // Always stored in cm (can be null)
-      notes: formData.get('notes') as string,
-      originalUnits: {
-        weight: 'grams',
-        height: 'cm',
-        headCircumference: 'cm',
-      },
-      createdAt: new Date().toISOString()
-    };
-    
-    // Save to memory/localStorage
-    measurements.push(measurement);
-    localStorage.setItem('kido-measurements', JSON.stringify(measurements));
-    
-    // Show success modal
-    showSuccessModal();
-    
-    // Reset form
-    form.reset();
-    
-    // Set today's date again
-    const today = new Date().toISOString().split('T')[0];
-    const measurementDateInput = document.querySelector('input[name="measurementDate"]') as HTMLInputElement;
-    if (measurementDateInput) {
-      measurementDateInput.value = today;
+      // Calculate age in days
+      const formMeasurementDate = new Date(formData.get('measurementDate') as string);
+      const childDateOfBirth = new Date(selectedChild.dateOfBirth);
+      const childAgeInDays = Math.floor((formMeasurementDate.getTime() - childDateOfBirth.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Create measurement object
+      const measurement = {
+        id: Date.now().toString(),
+        childId: selectedChild.id,
+        measurementDate: formData.get('measurementDate') as string,
+        ageInDays: childAgeInDays,
+        weight: weight, // Always stored in kg (can be null)
+        height: height, // Always stored in cm (can be null)
+        headCircumference: headCircumference, // Always stored in cm (can be null)
+        notes: formData.get('notes') as string
+      };
+      
+      // Save to database via API
+      const response = await fetch('/api/measurements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(measurement)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save measurement');
+      }
+      
+      // Show success modal
+      showSuccessModal();
+      
+      // Reset form
+      form.reset();
+      
+      // Set today's date again
+      const today = new Date().toISOString().split('T')[0];
+      const measurementDateInput = document.querySelector('input[name="measurementDate"]') as HTMLInputElement;
+      if (measurementDateInput) {
+        measurementDateInput.value = today;
+      }
+    } catch (error) {
+      console.error('Error saving measurement:', error);
+      showValidationAlert(error instanceof Error ? error.message : 'Failed to save measurement. Please try again.');
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Save Measurement';
+      }
     }
   }
 

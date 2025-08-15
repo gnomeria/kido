@@ -108,9 +108,6 @@ import Layout from '../layouts/Layout.astro';
     createdAt: string;
   }
 
-  // Load existing data
-  let children: Child[] = JSON.parse(localStorage.getItem('kido-children') || '[]');
-
   document.addEventListener('DOMContentLoaded', function() {
     // Form submission handler
     const form = document.getElementById('child-form') as HTMLFormElement;
@@ -119,40 +116,67 @@ import Layout from '../layouts/Layout.astro';
     }
   });
 
-  function handleFormSubmit(event: Event) {
+  async function handleFormSubmit(event: Event) {
     event.preventDefault();
     
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
     
-    // Check if child name already exists
-    const name = formData.get('name') as string;
-    const existingChild = children.find(child => child.name.toLowerCase() === name.toLowerCase());
-    
-    if (existingChild) {
-      alert('A child with this name already exists. Please use a different name or add a last name to differentiate.');
-      return;
+    const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Adding...';
     }
 
-    // Create child object
-    const child: Child = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      dateOfBirth: formData.get('dateOfBirth') as string,
-      sex: formData.get('sex') as 'male' | 'female',
-      notes: (formData.get('notes') as string).trim(),
-      createdAt: new Date().toISOString()
-    };
-    
-    // Save to localStorage
-    children.push(child);
-    localStorage.setItem('kido-children', JSON.stringify(children));
-    
-    // Show success modal
-    showSuccessModal();
-    
-    // Reset form
-    form.reset();
+    try {
+      // Check if child name already exists by fetching from API
+      const existingResponse = await fetch('/api/children');
+      const existingChildren = await existingResponse.json();
+      
+      const name = formData.get('name') as string;
+      const existingChild = existingChildren.find((child: Child) => child.name.toLowerCase() === name.toLowerCase());
+      
+      if (existingChild) {
+        alert('A child with this name already exists. Please use a different name or add a last name to differentiate.');
+        return;
+      }
+
+      // Create child object
+      const child = {
+        id: Date.now().toString(),
+        name: name.trim(),
+        dateOfBirth: formData.get('dateOfBirth') as string,
+        sex: formData.get('sex') as 'male' | 'female',
+        notes: (formData.get('notes') as string).trim()
+      };
+      
+      // Save to database via API
+      const response = await fetch('/api/children', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(child)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save child');
+      }
+      
+      // Show success modal
+      showSuccessModal();
+      
+      // Reset form
+      form.reset();
+    } catch (error) {
+      console.error('Error saving child:', error);
+      alert('Failed to save child. Please try again.');
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Add Child';
+      }
+    }
   }
 
   function showSuccessModal() {
