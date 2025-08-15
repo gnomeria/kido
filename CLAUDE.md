@@ -68,6 +68,10 @@
 - **ALWAYS use proper DaisyUI patterns**: Use `showModal()` and `<dialog>` elements for modals, not custom JavaScript state management.
 - Use `card`, `btn`, `alert`, `modal`, `hero`, `badge`, etc. instead of manual styling.
 
+### Library Documentation
+- **MANDATORY: ALWAYS use Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__context7__get-library-docs`) for ANY library documentation, implementation patterns, or framework references.
+- **NO EXCEPTIONS**: Never reference library documentation without using Context7 first.
+
 ### Progress Tracking
 - Always update `tasks.md` with current progress and use it as a checkpoint for task tracking.
 - Track all todos and progress in tasks.md file.

@@ -93,23 +93,21 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
   let measurements: Measurement[] = [];
   let selectedChild: Child | null = null;
 
-  document.addEventListener('DOMContentLoaded', function() {
-    children = JSON.parse(localStorage.getItem('kido-children') || '[]');
-    measurements = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
+  document.addEventListener('DOMContentLoaded', async function() {
+    await loadData();
     loadChildrenList();
     showNoSelection();
   });
 
   // Refresh data when returning to the page (e.g., after adding measurements)
-  window.addEventListener('focus', function() {
-    const newChildren = JSON.parse(localStorage.getItem('kido-children') || '[]');
-    const newMeasurements = JSON.parse(localStorage.getItem('kido-measurements') || '[]');
+  window.addEventListener('focus', async function() {
+    const previousChildrenCount = children.length;
+    const previousMeasurementsCount = measurements.length;
+    
+    await loadData();
     
     // Check if data has changed
-    if (JSON.stringify(newChildren) !== JSON.stringify(children) || 
-        JSON.stringify(newMeasurements) !== JSON.stringify(measurements)) {
-      children = newChildren;
-      measurements = newMeasurements;
+    if (children.length !== previousChildrenCount || measurements.length !== previousMeasurementsCount) {
       loadChildrenList();
       
       // If a child is currently selected, refresh their data
@@ -118,6 +116,24 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
       }
     }
   });
+
+  async function loadData() {
+    try {
+      // Load children
+      const childrenResponse = await fetch('/api/children');
+      if (childrenResponse.ok) {
+        children = await childrenResponse.json();
+      }
+
+      // Load measurements
+      const measurementsResponse = await fetch('/api/measurements');
+      if (measurementsResponse.ok) {
+        measurements = await measurementsResponse.json();
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  }
 
   function loadChildrenList() {
     const childrenList = document.getElementById('children-list');
@@ -135,7 +151,7 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
 
     childrenList.innerHTML = children.map(child => {
       const age = calculateAge(child.dateOfBirth);
-      const childMeasurements = measurements.filter(m => m.childName === child.name);
+      const childMeasurements = measurements.filter(m => m.child_id === child.id);
       const latestMeasurement = childMeasurements.length > 0 ?
         childMeasurements.sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
 
@@ -168,7 +184,7 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     if (selectedChild) {
       const childWithMeasurements = {
         ...selectedChild,
-        measurements: measurements.filter(m => m.childName === selectedChild?.name)
+        measurements: measurements.filter(m => m.child_id === selectedChild?.id)
       };
       const event = new CustomEvent('childChanged', { detail: childWithMeasurements });
       window.dispatchEvent(event);
@@ -195,35 +211,33 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     // Update child info
     const age = calculateAge(selectedChild.dateOfBirth);
     if (selectedChild) {
-      const childMeasurements = measurements.filter(m => m.childName === selectedChild?.name);
+      const childMeasurements = measurements.filter(m => m.child_id === selectedChild?.id);
       const latestMeasurement = childMeasurements.length > 0 ?
         childMeasurements.sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime())[0] : null;
 
-      // const isSelected = selectedChild.id === child.id;
+      const selectedChildName = document.getElementById('selected-child-name');
+      if (selectedChildName) selectedChildName.textContent = selectedChild.name;
 
-    const selectedChildName = document.getElementById('selected-child-name');
-    if (selectedChildName) selectedChildName.textContent = selectedChild.name;
+      const selectedChildInfo = document.getElementById('selected-child-info');
+      if (selectedChildInfo) selectedChildInfo.textContent = 
+        `${selectedChild.sex} • Born: ${new Date(selectedChild.dateOfBirth).toLocaleDateString()}`;
 
-    const selectedChildInfo = document.getElementById('selected-child-info');
-    if (selectedChildInfo) selectedChildInfo.textContent = 
-      `${selectedChild.sex} • Born: ${new Date(selectedChild.dateOfBirth).toLocaleDateString()}`;
+      const selectedChildAge = document.getElementById('selected-child-age');
+      if (selectedChildAge) selectedChildAge.textContent = age;
 
-    const selectedChildAge = document.getElementById('selected-child-age');
-    if (selectedChildAge) selectedChildAge.textContent = age;
+      const selectedChildMeasurements = document.getElementById('selected-child-measurements');
+      if (selectedChildMeasurements) selectedChildMeasurements.textContent = childMeasurements.length.toString();
+      
+      if (latestMeasurement) {
+        const selectedChildLatest = document.getElementById('selected-child-latest');
+        if (selectedChildLatest) selectedChildLatest.textContent = 
+          new Date(latestMeasurement.measurementDate).toLocaleDateString();
+      } else {
+        const selectedChildLatest = document.getElementById('selected-child-latest');
+        if (selectedChildLatest) selectedChildLatest.textContent = 'No data';
+      }
 
-    const selectedChildMeasurements = document.getElementById('selected-child-measurements');
-    if (selectedChildMeasurements) selectedChildMeasurements.textContent = childMeasurements.length.toString();
-    
-    if (latestMeasurement) {
-      const selectedChildLatest = document.getElementById('selected-child-latest');
-      if (selectedChildLatest) selectedChildLatest.textContent = 
-        new Date(latestMeasurement.measurementDate).toLocaleDateString();
-    } else {
-      const selectedChildLatest = document.getElementById('selected-child-latest');
-      if (selectedChildLatest) selectedChildLatest.textContent = 'No data';
-    }
-
-    updateSelectedChildMeasurementsTable();
+      updateSelectedChildMeasurementsTable();
     }
   }
 
@@ -231,7 +245,7 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     if (!selectedChild) return;
 
     const childMeasurements = measurements
-      .filter(m => m.childName === selectedChild?.name)
+      .filter(m => m.child_id === selectedChild?.id)
       .sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime());
 
     const tableBody = document.getElementById('selected-child-measurements-table');
@@ -244,7 +258,7 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
       noDataDiv.classList.remove('hidden');
     } else {
       noDataDiv.classList.add('hidden');
-      tableBody.innerHTML = childMeasurements.map((measurement: Measurement) => {
+      tableBody.innerHTML = childMeasurements.map((measurement: any) => {
         const measurementDate = new Date(measurement.measurementDate).toLocaleDateString();
         const ageText = getAgeText(measurement.ageInDays);
         
@@ -318,17 +332,30 @@ import MeasurementsTable from '../components/MeasurementsTable.astro';
     }
   }
 
-  function deleteMeasurement(measurementId: string) {
-    measurements = measurements.filter((m: Measurement) => m.id !== measurementId);
-    localStorage.setItem('kido-measurements', JSON.stringify(measurements));
-    
-    const modal = document.getElementById('delete-modal') as HTMLDialogElement;
-    if (modal) {
-      modal.close();
-    }
-    
-    if (selectedChild) {
-      selectChild(selectedChild.id);
+  async function deleteMeasurement(measurementId: string) {
+    try {
+      const response = await fetch(`/api/measurements?id=${measurementId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete measurement');
+      }
+
+      // Refresh data from API
+      await loadData();
+      
+      const modal = document.getElementById('delete-modal') as HTMLDialogElement;
+      if (modal) {
+        modal.close();
+      }
+      
+      if (selectedChild) {
+        selectChild(selectedChild.id);
+      }
+    } catch (error) {
+      console.error('Error deleting measurement:', error);
+      alert('Failed to delete measurement. Please try again.');
     }
   }
 

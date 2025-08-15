@@ -45,3 +45,4 @@
   - Measurement history table with age display
   - Delete functionality with confirmation
   - Responsive design with DaisyUI components
+ - ✅ Added `.cursor/rules` tailored for Astro + Tailwind + DaisyUI workflow

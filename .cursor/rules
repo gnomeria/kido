@@ -1,0 +1,54 @@
+# Kido .cursor/rules
+
+## Project context
+- Framework: Astro (output: server), Vite with Tailwind v4 plugin
+- Styling: Tailwind CSS v4 + DaisyUI
+- Charts: Chart.js with WHO percentile overlays
+- Data: SQLite (better-sqlite3) via `src/lib/database.ts` and Astro API routes under `src/pages/api`
+- Package manager: bun
+
+## Editor assistant behavior
+- Prefer DaisyUI components and classes (`btn`, `card`, `modal`, `hero`, `badge`, `alert`, `stats`, `table`, etc.). Do not reinvent UI primitives with custom JS if DaisyUI provides patterns.
+- Use `<dialog>` + `showModal()` for modals. Avoid custom modal state.
+- Keep client-side scripts minimal in `.astro` components; use Astro islands only when necessary.
+- Follow TypeScript-friendly patterns; annotate function signatures in TS files; avoid `any`.
+
+## Commands and tooling
+- Always use bun for scripts: `bun run build`, `bun run test`, `bun astro ...`.
+- Never run long-lived dev servers from the assistant (no `bun run dev`).
+- Use `/bin/rm` instead of `rm`.
+- When searching code, prefer ripgrep (`rg`) semantics via assistant tools.
+
+## Code style
+- Naming: descriptive, full words, no cryptic abbreviations.
+- Control flow: guard clauses, handle errors early, avoid deep nesting.
+- Comments: explain "why" for complex logic; no trivial comments.
+- Formatting: match existing style; multi-line over long one-liners.
+
+## Directory conventions
+- Pages in `src/pages`; API routes in `src/pages/api` returning JSON via `APIRoute`.
+- Reusable UI in `src/components` (Astro components using DaisyUI classes).
+- Global layout in `src/layouts/Layout.astro` and styles in `src/styles/global.css`.
+- Data and utilities in `src/lib` and `src/scripts`.
+
+## Growth charts
+- Use WHO LMS data from `src/data/who_growth_data.json`.
+- Use `src/scripts/calculate_z_score.js` helpers.
+- Plot child data with Chart.js, overlay 3rd, 15th, 50th, 85th, 97th percentiles.
+
+## Testing & CI
+- Use Playwright (`bun run test`) for E2E.
+- After edits, prefer running `bun run build` to ensure Astro compiles.
+
+## Security & data
+- No secrets in repo. Keep environment configs in `.env` and provide `.env.example`.
+- Validate API inputs in `APIRoute` handlers.
+
+## Git & tasks
+- Commit messages: concise, imperative; describe the why.
+- Keep `tasks.md` updated with progress and next steps.
+
+## Assistant-specific
+- Default to reading code before asking the user.
+- Use parallel searches/reads when scanning the codebase.
+- Don’t push to remotes or start background processes.
